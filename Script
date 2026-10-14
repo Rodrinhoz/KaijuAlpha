@@ -579,6 +579,8 @@ local State = {
 	QuestLastCheck = 0,
 	QuestLastProgress = 0,
 	QuestStuckCount = 0,
+	QuestSwitchingForSwim = false,
+	QuestSwitchTargetKaiju = nil,
 	-- FarmKaijus
 	FarmKaijuTarget = nil,
 	FarmKaijuStage = 0, -- 0=idle, 1=checking reqs, 2=progressing req, 3=buying
@@ -915,17 +917,29 @@ local function SelectBestQuest()
 	local available = GetAvailableQuests()
 	if #available == 0 then return nil end
 	
-	-- Priority: Ready to claim > Kill/Any > Walk/Swim/Fly > BuildingBeam > BuildingDestroy > BossKill/Damage > PlayTime
+	-- Priority: Ready to claim > Kill/Any > Walk > BuildingBeam > BuildingDestroy > BossKill/Damage > PlayTime > Swimming/Flying (LAST)
+	-- Swimming/Flying are lowest so they're done last, allowing time to switch kaiju
 	local priority = {
 		Kill = 10, KillTarget = 9, KillAny = 9,
-		Walk = 8, Swimming = 8, Flying = 8,
-		BuildingBeam = 7, BuildingDestroy = 6,
-		BossKill = 5, BossDamage = 5,
+		Walk = 8, Move = 8, Distance = 8,
+		BuildingBeam = 7, BuildingDestroy = 6, Beam = 7, Destroy = 6,
+		BossKill = 5, BossDamage = 5, Boss = 5,
 		PlayTime = 4,
+		Swimming = 1, Flying = 1,  -- LOWEST PRIORITY - done last
 	}
 	
 	-- Check if enemies available for Kill quests
 	local enemiesAvailable = #GetEnemyKaijus() > 0
+	
+	-- Check if we have a non-flyer kaiju for swimming quests
+	local hasNonFlyer = false
+	local owned = GetOwnedKaijus()
+	for name, _ in pairs(owned) do
+		if not IsFlyerKaiju(name) then
+			hasNonFlyer = true
+			break
+		end
+	end
 	
 	table.sort(available, function(a, b)
 		-- Skip degraded quest
@@ -2686,6 +2700,21 @@ local function QuestFarmTick()
 	if (now - (State.QuestLastCheck or 0)) < 2 then return end
 	State.QuestLastCheck = now
 	
+	-- Handle post-respawn continuation for swimming quest kaiju switch
+	if State.QuestSwitchingForSwim and State.QuestSwitchTargetKaiju then
+		local myKaiju = GetMyKaiju()
+		local currentName = myKaiju and myKaiju:GetAttribute("KaijuName")
+		if currentName == State.QuestSwitchTargetKaiju then
+			Notify("QuestFarm: Respawned as " .. currentName .. " - continuing swimming quest", 3)
+			State.QuestSwitchingForSwim = false
+			State.QuestSwitchTargetKaiju = nil
+			-- Continue to farming logic below
+		else
+			-- Still waiting for respawn, skip this tick
+			return
+		end
+	end
+	
 	-- Auto-claim completed quests
 	local available = GetAvailableQuests()
 	if available then
@@ -2752,7 +2781,7 @@ local function QuestFarmTick()
 			local myKaiju = GetMyKaiju()
 			local myHRP = myKaiju and myKaiju:FindFirstChild("HumanoidRootPart")
 			if myHRP then
-				-- Check if current kaiju is a flyer and quest is swimming
+				-- Check if current kaiju is a flyer and quest is swimming/flying
 				local currentKaijuName = myKaiju:GetAttribute("KaijuName")
 				local isFlyer = currentKaijuName and IsFlyerKaiju(currentKaijuName)
 				
@@ -2774,22 +2803,63 @@ local function QuestFarmTick()
 						Notify("QuestFarm: No enemies for Kill quest, will degrade", 3)
 					end
 				elseif category == "Walk" or category == "Swimming" or category == "Flying" or category == "Move" or category == "Distance" then
-					-- Handle swimming for flyers
+					-- Handle swimming/flying for flyers - auto-switch to non-flyer
 					if isFlyer and (category == "Swimming" or category == "Flying") then
-						Notify("QuestFarm: Flyer kaiju (" .. currentKaijuName .. ") cannot " .. category .. " - skipping quest", 3)
-						-- Mark quest as skipped for degradation
-						State.SkippedQuestId = State.QuestCurrentId
-						State.SkippedQuestType = State.QuestCurrentType
+						-- Find the best non-flyer kaiju (highest level)
+						local nonFlyerName = nil
+						local bestLevel = 0
+						local owned = GetOwnedKaijus()
+						for name, data in pairs(owned) do
+							if not IsFlyerKaiju(name) and data.Level > bestLevel then
+								nonFlyerName = name
+								bestLevel = data.Level
+							end
+						end
+						if nonFlyerName then
+							Notify("QuestFarm: Switching to " .. nonFlyerName .. " (Lv." .. bestLevel .. ") for " .. category .. " quest", 3)
+							-- Mark that we're switching for this quest so we continue after respawn
+							State.QuestSwitchingForSwim = true
+							State.QuestSwitchTargetKaiju = nonFlyerName
+							-- Force death and respawn with non-flyer
+							pcall(function()
+								local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+								local cr = remotes and remotes:FindFirstChild("CombatRemote")
+								if cr then cr:FireServer("Death") end
+							end)
+							task.delay(1.5, function()
+								local idx = SPAWN_INDEX[Config.Respawn.Island] or 1
+								if SetSpawnSelection(idx, nonFlyerName) and PressSpawn() then
+									Notify("Respawned as " .. nonFlyerName .. " for " .. category .. " quest", 3)
+								end
+							end)
+						else
+							Notify("QuestFarm: No non-flyer kaiju owned - skipping " .. category .. " quest", 3)
+							State.SkippedQuestId = State.QuestCurrentId
+							State.SkippedQuestType = State.QuestCurrentType
+						end
 					else
-						-- Move around the map
+						-- Move around the map (walk/swim/fly)
 						local moveDir = Vector3.new(math.random(-100, 100), 0, math.random(-100, 100)).Unit
 						pcall(function()
 							myHRP.CFrame = myHRP.CFrame + moveDir * 50
 						end)
 					end
 				elseif category == "BuildingBeam" or category == "BuildingDestroy" or category == "Beam" or category == "Destroy" then
-					-- Beam buildings
-					Config.Farm.Builds = true
+					-- Beam buildings - ensure autofarm is enabled and working
+					if not Config.Farm.Builds then
+						Config.Farm.Builds = true
+						State.LastFarmRefresh = 0
+						Notify("QuestFarm: Enabled Beam Buildings for quest", 3)
+					end
+					-- Enable AutoFarm for platform + beam firing
+					if not Config.Farm.AutoFarm then
+						Config.Farm.AutoFarm = true
+						InstallSilentHooks()
+						local cd, cost, skill = BeamCostCD()
+						Notify(string.format("AutoFarm ON for buildings (uses %s: %ds CD, %d energy)", skill, math.floor(cd), math.floor(cost)), 3)
+					end
+					-- Ensure we're targeting buildings with beam
+					Config.Farm.Players = false
 					State.LastFarmRefresh = 0
 				elseif category == "BossKill" or category == "BossDamage" or category == "Boss" then
 					-- Go to boss and attack
