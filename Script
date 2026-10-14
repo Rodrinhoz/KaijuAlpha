@@ -2074,19 +2074,7 @@ local function RespawnTick()
 	end
 	if not alive then
 		State.WaitingRespawn = true
-		-- Handle manual respawn (from Reset and Respawn button)
-		if State.ManualRespawnKaiju then
-			local retryEvery = 1.5
-			if (now - (State.LastSpawnTry or 0)) > retryEvery then
-				State.LastSpawnTry = now
-				local idx = SPAWN_INDEX[State.ManualRespawnIsland] or 1
-				if SetSpawnSelection(idx, State.ManualRespawnKaiju) and PressSpawn() then
-					Notify("Spawneando como " .. State.ManualRespawnKaiju .. " en " .. State.ManualRespawnIsland .. "...", 3)
-				else
-					Notify("Error al spawnear - pulsa Spawn manual", 4)
-				end
-			end
-		elseif shouldAutoRespawn then
+		if shouldAutoRespawn then
 			local retryEvery = fast and 1.5 or 5
 			if (now - (State.LastSpawnTry or 0)) > retryEvery then
 				State.LastSpawnTry = now
@@ -2103,9 +2091,6 @@ local function RespawnTick()
 	end
 	if State.WaitingRespawn then
 		State.WaitingRespawn = false
-		-- Clear manual respawn flag on successful respawn
-		State.ManualRespawnKaiju = nil
-		State.ManualRespawnIsland = nil
 		State.WaitingRespawn = false
 		State.MyKaijuCache = myKaiju
 		-- Con BossFarm: vuelve al JEFE solo si el farm y su autorespawn
@@ -2648,11 +2633,13 @@ local function QuestFarmTick()
 	
 	-- Auto-claim completed quests
 	local available = GetAvailableQuests()
-	for _, aq in pairs(available) do
-		if aq.ReadyToClaim then
-			local ok = ClaimQuest(aq.Type, aq.Quest.Id)
-			if ok then
-				Notify("Claimed " .. aq.Type .. " quest: " .. aq.Quest.Info, 3)
+	if available then
+		for _, aq in pairs(available) do
+			if aq.ReadyToClaim then
+				local ok = ClaimQuest(aq.Type, aq.Quest.Id)
+				if ok then
+					Notify("Claimed " .. aq.Type .. " quest: " .. aq.Quest.Info, 3)
+				end
 			end
 		end
 	end
@@ -2687,10 +2674,12 @@ local function QuestFarmTick()
 	if State.QuestCurrentId and State.QuestCurrentType then
 		local available = GetAvailableQuests()
 		local currentQuest = nil
-		for _, aq in pairs(available) do
-			if aq.Quest.Id == State.QuestCurrentId and aq.Type == State.QuestCurrentType then
-				currentQuest = aq.Quest
-				break
+		if available then
+			for _, aq in pairs(available) do
+				if aq.Quest.Id == State.QuestCurrentId and aq.Type == State.QuestCurrentType then
+					currentQuest = aq.Quest
+					break
+				end
 			end
 		end
 		if currentQuest then
@@ -3271,16 +3260,21 @@ MyKaijusGroup:AddButton({ Text = "Reset and Respawn", Func = function()
 		Notify("Select a kaiju first", 3)
 		return
 	end
-	-- Mark manual respawn so RespawnTick knows to proceed even if Auto is off
-	State.ManualRespawnKaiju = kaijuName
-	State.ManualRespawnIsland = Config.Respawn.Island
 	-- Force death then respawn with selected kaiju
 	pcall(function()
 		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 		local cr = remotes and remotes:FindFirstChild("CombatRemote")
 		if cr then cr:FireServer("Death") end
 	end)
-	Notify("Resetting... will respawn as " .. kaijuName, 3)
+	-- Wait for death then spawn with selected kaiju (original approach with delay)
+	task.delay(1.5, function()
+		local idx = SPAWN_INDEX[Config.Respawn.Island] or 1
+		if SetSpawnSelection(idx, kaijuName) and PressSpawn() then
+			Notify("Respawning as " .. kaijuName .. " on " .. Config.Respawn.Island, 3)
+		else
+			Notify("Spawn failed - press Spawn manually", 4)
+		end
+	end)
 end })
 MyKaijusGroup:AddLabel("Select a kaiju then click Reset and Respawn to re-equip it after death", true)
 
