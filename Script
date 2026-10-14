@@ -1003,9 +1003,15 @@ local function CreateFOVCircle()
 		circle.Filled = false
 		circle.NumSides = 64
 		circle.ZIndex = 1
-		local vs = Camera.ViewportSize
-		if vs.X > 0 and vs.Y > 0 then
-			circle.Position = Vector2.new(vs.X / 2, vs.Y / 2)
+		-- Start at mouse position
+		local mOk, m = pcall(function() return UserInputService:GetMouseLocation() end)
+		if mOk and m then
+			circle.Position = Vector2.new(m.X, m.Y)
+		else
+			local vs = Camera.ViewportSize
+			if vs.X > 0 and vs.Y > 0 then
+				circle.Position = Vector2.new(vs.X / 2, vs.Y / 2)
+			end
 		end
 	end)
 end
@@ -1026,9 +1032,15 @@ local function UpdateFOVCircle()
 		c.Visible = FOVShouldShow()
 		c.Radius = Config.Aim.FOV
 		c.Color = Config.Aim.FOVColor
-		local vs = Camera.ViewportSize
-		if vs.X > 0 and vs.Y > 0 then
-			c.Position = Vector2.new(vs.X / 2, vs.Y / 2)
+		-- FOV circle follows mouse (silent aim uses mouse position)
+		local mOk, m = pcall(function() return UserInputService:GetMouseLocation() end)
+		if mOk and m then
+			c.Position = Vector2.new(m.X, m.Y)
+		else
+			local vs = Camera.ViewportSize
+			if vs.X > 0 and vs.Y > 0 then
+				c.Position = Vector2.new(vs.X / 2, vs.Y / 2)
+			end
 		end
 	end)
 end
@@ -2042,8 +2054,9 @@ end
 
 local function RespawnTick()
 	if State.Unloaded then return end
-	-- Siempre activo: si mueres, reaparece solo (rápido en jefe, normal fuera)
-	local fast = Config.BossFarm.Enabled
+	-- Solo auto-respawn si Config.Respawn.Auto está activado (o BossFarm con AutoRespawn)
+	local fast = Config.BossFarm.Enabled and Config.BossFarm.AutoRespawn
+	local shouldAutoRespawn = Config.Respawn.Auto or fast
 	local now = os.clock()
 	local period = fast and 0.25 or 1
 	if (now - (State.LastRespawnCheck or 0)) < period then return end
@@ -2061,14 +2074,18 @@ local function RespawnTick()
 	end
 	if not alive then
 		State.WaitingRespawn = true
-		local retryEvery = fast and 1.5 or 5
-		if (now - (State.LastSpawnTry or 0)) > retryEvery then
-			State.LastSpawnTry = now
-			if SpawnOnIsland(Config.Respawn.Island) then
-				Notify("Spawneando en " .. Config.Respawn.Island .. "...", 3)
-			elseif not fast then
-				Notify("Pulsa Play + Spawn manual", 4)
+		if shouldAutoRespawn then
+			local retryEvery = fast and 1.5 or 5
+			if (now - (State.LastSpawnTry or 0)) > retryEvery then
+				State.LastSpawnTry = now
+				if SpawnOnIsland(Config.Respawn.Island) then
+					Notify("Spawneando en " .. Config.Respawn.Island .. "...", 3)
+				elseif not fast then
+					Notify("Pulsa Play + Spawn manual", 4)
+				end
 			end
+		else
+			Notify("Muerto - Auto respawn desactivado", 4)
 		end
 		return
 	end
@@ -2649,6 +2666,56 @@ local function QuestFarmTick()
 			State.QuestCurrentType = nil
 		end
 	end
+	
+	-- FARM QUEST OBJECTIVES
+	if State.QuestCurrentId and State.QuestCurrentType then
+		local available = GetAvailableQuests()
+		local currentQuest = nil
+		for _, aq in pairs(available) do
+			if aq.Quest.Id == State.QuestCurrentId and aq.Type == State.QuestCurrentType then
+				currentQuest = aq.Quest
+				break
+			end
+		end
+		if currentQuest then
+			local category = currentQuest.Category
+			local myKaiju = GetMyKaiju()
+			local myHRP = myKaiju and myKaiju:FindFirstChild("HumanoidRootPart")
+			if myHRP then
+				-- Quest farming logic by category
+				if category == "Kill" or category == "KillTarget" or category == "KillAny" then
+					-- Find and kill enemies
+					local enemies = GetEnemyKaijus()
+					if #enemies > 0 then
+						local target = enemies[1]
+						local tHRP = target:FindFirstChild("HumanoidRootPart")
+						if tHRP then
+							-- Move to target and attack
+							pcall(function()
+								myHRP.CFrame = CFrame.lookAt(tHRP.Position + Vector3.new(0, 5, 15), tHRP.Position)
+							end)
+							FireSkill("Attack1")
+						end
+					end
+				elseif category == "Walk" or category == "Swimming" or category == "Flying" then
+					-- Move around the map
+					local moveDir = Vector3.new(math.random(-100, 100), 0, math.random(-100, 100)).Unit
+					pcall(function()
+						myHRP.CFrame = myHRP.CFrame + moveDir * 50
+					end)
+				elseif category == "BuildingBeam" or category == "BuildingDestroy" then
+					-- Beam buildings
+					Config.Farm.Builds = true
+					State.LastFarmRefresh = 0
+				elseif category == "BossKill" or category == "BossDamage" then
+					-- Go to boss and attack
+					Config.BossFarm.Enabled = true
+				elseif category == "PlayTime" then
+					-- Just wait (playtime accumulates naturally)
+				end
+			end
+		end
+	end
 end
 
 -- ================= FARM KAIJU TICK =================
@@ -3146,8 +3213,19 @@ local MiscTab = Window:AddTab("Misc")
 
 -- My Kaijus (left) - Kaiju Inventory System
 local MyKaijusGroup = MiscTab:AddLeftGroupbox("My Kaijus")
-MyKaijusGroup:AddButton({ Text = "Refresh Inventory", Func = function()
+
+-- Refresh function
+local function RefreshMyKaijus()
 	State.MyKaijuList = GetOwnedKaijus()
+	local ownedNames = {}
+	for name, _ in pairs(State.MyKaijuList) do table.insert(ownedNames, name) end
+	if #ownedNames == 0 then table.insert(ownedNames, "None") end
+	table.sort(ownedNames)
+	pcall(function() MyKaijuSelectDrop:Refresh(ownedNames) end)
+	-- Keep current selection if still valid
+	if State.SelectedMyKaiju and not State.MyKaijuList[State.SelectedMyKaiju] then
+		State.SelectedMyKaiju = ownedNames[1]
+	end
 	local currency = GetCurrency()
 	local msg = "Cells: " .. math.floor(currency.Cells) .. " | Gems: " .. math.floor(currency.Gems) .. "\n"
 	local count = 0
@@ -3158,7 +3236,9 @@ MyKaijusGroup:AddButton({ Text = "Refresh Inventory", Func = function()
 	msg = "Owned Kaijus: " .. count .. "\n" .. msg
 	Notify(msg, 5)
 	print(msg)
-end })
+end
+
+MyKaijusGroup:AddButton({ Text = "Refresh Inventory", Func = RefreshMyKaijus })
 
 -- Kaiju selector for actions
 local ownedNames = {}
