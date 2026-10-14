@@ -614,7 +614,9 @@ local Config = {
 	SilentAim = { Enabled = false, TargetPart = "HumanoidRootPart", Range = 1500,
 		OnlyWhileAttacking = true },
 	Farm = { Builds = false, Players = false, BuildRange = 1500, Wallcheck = true,
-		AutoFarm = false, SkyAlt = 70, BeamAlto = false, Efficient = false, EfficientRange = 800 },
+		AutoFarm = false, SkyAlt = 70, BeamAlto = false, Efficient = false, EfficientRange = 800,
+		BuildingFarmMode = "Beam", -- "Beam" = platform in Tokyo lake + beam, "Normal" = TP inside building + attacks
+		BuildingAttackList = { "Attack1", "Attack2", "Attack3" } },
 	Kill = { Enabled = false, Targets = {}, Exclude = {}, Attacks = { Attack1 = true }, StickDist = 12, SwitchTime = 8, Interval = 1.2, PosMode = "Enfrente" },
 	Respawn = { Auto = false, Island = "Tokyo" },
 	Vote = { AutoAll = false, AutoYes = true, AutoFriends = false, Solo = {}, Exclude = {} },
@@ -1535,6 +1537,9 @@ local ISLANDS = {
 	{ Name = "Safezone", Pos = Vector3.new(1763, 108, 888) },
 }
 
+-- Tokyo Lake position (water level) for beam building farm platform
+local TOKYO_LAKE = Vector3.new(114, 4, 4)
+
 local function GetCombatRemote()
 	local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 	return remotes and remotes:FindFirstChild("CombatRemote")
@@ -1675,54 +1680,89 @@ local function AutoFarmTick()
 		ReleaseSkyPlatform()
 		return
 	end
-	local isl = NearestIsland(myHRP.Position)
-	if not isl then
-		Notify("AutoFarm: No island detected near you", 3)
-		return
-	end
-	local skyTop = Vector3.new(isl.Pos.X, isl.Pos.Y + (Config.Farm.SkyAlt or 150), isl.Pos.Z)
-	AcquireSkyPlatform(skyTop)
-	-- Debug: show farm status
-	if State.FarmList and #State.FarmList > 0 then
-		Notify("AutoFarm: " .. #State.FarmList .. " targets | Platform: " .. tostring(State.SkyPlatform ~= nil), 2)
-	else
-		Notify("AutoFarm: No targets found - scanning...", 3)
-	end
-	-- Si te tumban o caes, te devuelve arriba (mirando al objetivo)
-	if myHRP.Position.Y < skyTop.Y - 25 then
-		local face = CurrentFarmTarget()
-		pcall(function()
-			local fp = face and SilentPoint(face)
-			local dest = Vector3.new(skyTop.X, skyTop.Y + 4, skyTop.Z)
-			if fp then myHRP.CFrame = CFrame.lookAt(dest, fp)
-			else myHRP.CFrame = CFrame.new(dest) end
-		end)
-	else
-		-- Apunta con el cuerpo sin moverte (el beam sigue al objetivo)
-		local face = CurrentFarmTarget()
-		if face then
-			local fp = SilentPoint(face)
-			if fp then
-				pcall(function()
-					myHRP.CFrame = CFrame.lookAt(myHRP.Position, fp)
-				end)
+	
+	local mode = Config.Farm.BuildingFarmMode or "Beam"
+	
+	if mode == "Beam" then
+		-- BEAM MODE: Platform in Tokyo lake + spam beam
+		AcquireSkyPlatform(TOKYO_LAKE)
+		-- Debug: show farm status
+		if State.FarmList and #State.FarmList > 0 then
+			Notify("AutoFarm[Beam]: " .. #State.FarmList .. " targets | Platform: " .. tostring(State.SkyPlatform ~= nil), 2)
+		else
+			Notify("AutoFarm[Beam]: No targets found - scanning...", 3)
+		end
+		-- Si te tumban o caes, te devuelve arriba (mirando al objetivo)
+		if myHRP.Position.Y < TOKYO_LAKE.Y + 10 then
+			local face = CurrentFarmTarget()
+			pcall(function()
+				local fp = face and SilentPoint(face)
+				local dest = Vector3.new(TOKYO_LAKE.X, TOKYO_LAKE.Y + 50, TOKYO_LAKE.Z)
+				if fp then myHRP.CFrame = CFrame.lookAt(dest, fp)
+				else myHRP.CFrame = CFrame.new(dest) end
+			end)
+		else
+			-- Apunta con el cuerpo sin moverte (el beam sigue al objetivo)
+			local face = CurrentFarmTarget()
+			if face then
+				local fp = SilentPoint(face)
+				if fp then
+					pcall(function()
+						myHRP.CFrame = CFrame.lookAt(myHRP.Position, fp)
+					end)
+				end
 			end
 		end
-	end
-	-- Dispara el beam disponible con cooldown listo y energía suficiente
-	if now >= (State.NextBeamAt or 0) then
-		local cd, cost, skill = BeamCostCD()
-		local en = myKaiju:GetAttribute("Energy") or 100
-		if en >= cost then
-			FireSkill(skill)
-			State.NextBeamAt = now + cd
-			-- Throttle notify to avoid spam (B16)
-			if not State.LastBeamNotify or (now - State.LastBeamNotify) > 10 then
-				State.LastBeamNotify = now
-				Notify(skill .. " disparado (próximo en " .. math.floor(cd) .. "s)", 3)
+		-- Dispara el beam disponible con cooldown listo y energía suficiente
+		if now >= (State.NextBeamAt or 0) then
+			local cd, cost, skill = BeamCostCD()
+			local en = myKaiju:GetAttribute("Energy") or 100
+			if en >= cost then
+				FireSkill(skill)
+				State.NextBeamAt = now + cd
+				if not State.LastBeamNotify or (now - State.LastBeamNotify) > 10 then
+					State.LastBeamNotify = now
+					Notify(skill .. " disparado (próximo en " .. math.floor(cd) .. "s)", 3)
+				end
+			else
+				State.NextBeamAt = now + 2
 			end
-		else
-			State.NextBeamAt = now + 2
+		end
+	else
+		-- NORMAL MODE: TP inside each building + spam attacks
+		if not State.FarmList or #State.FarmList == 0 then
+			Notify("AutoFarm[Normal]: No buildings - scanning...", 3)
+			return
+		end
+		
+		-- Get current target building
+		local target = State.FarmList[State.FarmIdx]
+		if not target or not target.Parent then
+			State.FarmIdx = (State.FarmIdx % #State.FarmList) + 1
+			return
+		end
+		
+		-- TP inside building (above ground level)
+		local ok, pv = pcall(function() return target:GetPivot().Position end)
+		if ok and pv then
+			-- TP slightly above building center
+			local insidePos = pv + Vector3.new(0, 20, 0)
+			pcall(function() myHRP.CFrame = CFrame.new(insidePos) end)
+		end
+		
+		-- Spam attacks from BuildingAttackList
+		if now >= (State.NextBuildingAttack or 0) then
+			local attacks = Config.Farm.BuildingAttackList or { "Attack1", "Attack2", "Attack3" }
+			State.BuildingAttackIdx = ((State.BuildingAttackIdx or 0) % #attacks) + 1
+			FireSkill(attacks[State.BuildingAttackIdx])
+			State.NextBuildingAttack = now + 0.8
+			Notify("AutoFarm[Normal]: " .. attacks[State.BuildingAttackIdx] .. " on building", 2)
+		end
+		
+		-- Rotate to next building every 3 seconds
+		if not State.LastBuildingRotate or (now - State.LastBuildingRotate) > 3 then
+			State.LastBuildingRotate = now
+			State.FarmIdx = (State.FarmIdx % #State.FarmList) + 1
 		end
 	end
 end
@@ -2856,22 +2896,31 @@ local function QuestFarmTick()
 						end)
 					end
 				elseif category == "BuildingBeam" or category == "BuildingDestroy" or category == "Beam" or category == "Destroy" then
-					-- Beam buildings - ensure autofarm is enabled and working
+					-- Determine mode: "Beam" for BuildingBeam/Beam, "Normal" for BuildingDestroy/Destroy
+					local isBeamQuest = string.find(category, "Beam") ~= nil
+					local mode = isBeamQuest and "Beam" or "Normal"
+					Config.Farm.BuildingFarmMode = mode
+					
 					if not Config.Farm.Builds then
 						Config.Farm.Builds = true
 						State.LastFarmRefresh = 0
-						Notify("QuestFarm: Enabled Beam Buildings for quest", 3)
+						Notify("QuestFarm: Enabled " .. mode .. " Buildings for quest", 3)
 					end
-					-- Enable AutoFarm for platform + beam firing
+					-- Enable AutoFarm for platform + beam firing (Beam) or TP inside + attacks (Normal)
 					if not Config.Farm.AutoFarm then
 						Config.Farm.AutoFarm = true
-						InstallSilentHooks()
-						local cd, cost, skill = BeamCostCD()
-						Notify(string.format("AutoFarm ON for buildings (uses %s: %ds CD, %d energy)", skill, math.floor(cd), math.floor(cost)), 3)
+						if mode == "Beam" then
+							InstallSilentHooks()
+							local cd, cost, skill = BeamCostCD()
+							Notify(string.format("AutoFarm[Beam] ON for buildings (platform in Tokyo lake + %s: %ds CD, %d energy)", skill, math.floor(cd), math.floor(cost)), 3)
+						else
+							Notify("AutoFarm[Normal] ON for buildings (TP inside + spam attacks)", 3)
+						end
 					end
-					-- Ensure we're targeting buildings with beam
+					-- Ensure we're targeting buildings
 					Config.Farm.Players = false
 					State.LastFarmRefresh = 0
+					Notify("QuestFarm: Building farm mode = " .. mode, 3)
 				elseif category == "BossKill" or category == "BossDamage" or category == "Boss" then
 					-- Go to boss and attack
 					Config.BossFarm.Enabled = true
