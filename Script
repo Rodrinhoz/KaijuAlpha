@@ -581,6 +581,7 @@ local State = {
 	QuestStuckCount = 0,
 	QuestSwitchingForSwim = false,
 	QuestSwitchTargetKaiju = nil,
+	QuestSwitchingForFarm = false,
 	-- FarmKaijus
 	FarmKaijuTarget = nil,
 	FarmKaijuStage = 0, -- 0=idle, 1=checking reqs, 2=progressing req, 3=buying
@@ -1742,12 +1743,23 @@ local function AutoFarmTick()
 			return
 		end
 		
-		-- TP inside building (above ground level)
+		-- FORCED TP to exact building center (underground/middle)
 		local ok, pv = pcall(function() return target:GetPivot().Position end)
 		if ok and pv then
-			-- TP slightly above building center
-			local insidePos = pv + Vector3.new(0, 20, 0)
-			pcall(function() myHRP.CFrame = CFrame.new(insidePos) end)
+			-- Force TP to EXACT building center (underground/middle)
+			pcall(function() 
+				myHRP.CFrame = CFrame.new(pv)  -- Exact center, no offset
+			end)
+		end
+		
+		-- Anti-stuck: if position hasn't changed in 5s, force rotate
+		if not State.LastBuildingPos or (now - State.LastBuildingPos) > 5 then
+			State.LastBuildingPos = now
+			if State.LastBuildingCFrame and (myHRP.Position - State.LastBuildingCFrame.Position).Magnitude < 10 then
+				Notify("AutoFarm[Normal]: Stuck - forcing rotate", 3)
+				State.FarmIdx = (State.FarmIdx % #State.FarmList) + 1
+			end
+			State.LastBuildingCFrame = myHRP.CFrame
 		end
 		
 		-- Spam attacks from BuildingAttackList
@@ -1755,12 +1767,11 @@ local function AutoFarmTick()
 			local attacks = Config.Farm.BuildingAttackList or { "Attack1", "Attack2", "Attack3" }
 			State.BuildingAttackIdx = ((State.BuildingAttackIdx or 0) % #attacks) + 1
 			FireSkill(attacks[State.BuildingAttackIdx])
-			State.NextBuildingAttack = now + 0.8
-			Notify("AutoFarm[Normal]: " .. attacks[State.BuildingAttackIdx] .. " on building", 2)
+			State.NextBuildingAttack = now + 0.5  -- Faster attack spam
 		end
 		
-		-- Rotate to next building every 3 seconds
-		if not State.LastBuildingRotate or (now - State.LastBuildingRotate) > 3 then
+		-- Rotate to next building every 2 seconds (faster rotation)
+		if not State.LastBuildingRotate or (now - State.LastBuildingRotate) > 2 then
 			State.LastBuildingRotate = now
 			State.FarmIdx = (State.FarmIdx % #State.FarmList) + 1
 		end
@@ -2766,6 +2777,21 @@ local function QuestFarmTick()
 		end
 	end
 	
+	-- Handle post-respawn continuation for farm kaiju switch (Final Wars)
+	if State.QuestSwitchingForFarm and State.QuestSwitchTargetKaiju then
+		local myKaiju = GetMyKaiju()
+		local currentName = myKaiju and myKaiju:GetAttribute("KaijuName")
+		if currentName == State.QuestSwitchTargetKaiju then
+			Notify("QuestFarm: Respawned as " .. currentName .. " - starting farm", 3)
+			State.QuestSwitchingForFarm = false
+			State.QuestSwitchTargetKaiju = nil
+			-- Continue to farming logic below
+		else
+			-- Still waiting for respawn, skip this tick
+			return
+		end
+	end
+	
 	-- Auto-claim completed quests
 	local available = GetAvailableQuests()
 	if available then
@@ -2794,6 +2820,29 @@ local function QuestFarmTick()
 			end
 			State.QuestLastProgress = prog
 			Notify("QuestFarm: Selected " .. best.Type .. " - " .. best.Quest.Info .. " [" .. best.Quest.Progress .. "/" .. best.Quest.Goal .. "] Cat: " .. tostring(best.Quest.Category), 3)
+			
+			-- Auto-switch to Final Wars Godzilla for farming (if owned)
+			if IsKaijuOwned("Final Wars Godzilla") then
+				local currentName = myKaiju and myKaiju:GetAttribute("KaijuName")
+				if currentName ~= "Final Wars Godzilla" then
+					Notify("QuestFarm: Switching to Final Wars Godzilla for farming", 3)
+					State.QuestSwitchingForFarm = true
+					State.QuestSwitchTargetKaiju = "Final Wars Godzilla"
+					-- Force death and respawn with Final Wars
+					pcall(function()
+						local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+						local cr = remotes and remotes:FindFirstChild("CombatRemote")
+						if cr then cr:FireServer("Death") end
+					end)
+					task.delay(1.5, function()
+						local idx = SPAWN_INDEX[Config.Respawn.Island] or 1
+						if SetSpawnSelection(idx, "Final Wars Godzilla") and PressSpawn() then
+							Notify("Respawned as Final Wars Godzilla for farming", 3)
+						end
+					end)
+					return -- Wait for respawn before continuing
+				end
+			end
 			
 			-- If stuck for too long, try next quest (degrade = skip to next best)
 			if State.QuestStuckCount > 5 and Config.QuestFarm.DegradeStuck then
