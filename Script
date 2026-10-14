@@ -2074,7 +2074,19 @@ local function RespawnTick()
 	end
 	if not alive then
 		State.WaitingRespawn = true
-		if shouldAutoRespawn then
+		-- Handle manual respawn (from Reset and Respawn button)
+		if State.ManualRespawnKaiju then
+			local retryEvery = 1.5
+			if (now - (State.LastSpawnTry or 0)) > retryEvery then
+				State.LastSpawnTry = now
+				local idx = SPAWN_INDEX[State.ManualRespawnIsland] or 1
+				if SetSpawnSelection(idx, State.ManualRespawnKaiju) and PressSpawn() then
+					Notify("Spawneando como " .. State.ManualRespawnKaiju .. " en " .. State.ManualRespawnIsland .. "...", 3)
+				else
+					Notify("Error al spawnear - pulsa Spawn manual", 4)
+				end
+			end
+		elseif shouldAutoRespawn then
 			local retryEvery = fast and 1.5 or 5
 			if (now - (State.LastSpawnTry or 0)) > retryEvery then
 				State.LastSpawnTry = now
@@ -2090,6 +2102,10 @@ local function RespawnTick()
 		return
 	end
 	if State.WaitingRespawn then
+		State.WaitingRespawn = false
+		-- Clear manual respawn flag on successful respawn
+		State.ManualRespawnKaiju = nil
+		State.ManualRespawnIsland = nil
 		State.WaitingRespawn = false
 		State.MyKaijuCache = myKaiju
 		-- Con BossFarm: vuelve al JEFE solo si el farm y su autorespawn
@@ -3255,19 +3271,16 @@ MyKaijusGroup:AddButton({ Text = "Reset and Respawn", Func = function()
 		Notify("Select a kaiju first", 3)
 		return
 	end
+	-- Mark manual respawn so RespawnTick knows to proceed even if Auto is off
+	State.ManualRespawnKaiju = kaijuName
+	State.ManualRespawnIsland = Config.Respawn.Island
 	-- Force death then respawn with selected kaiju
 	pcall(function()
 		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 		local cr = remotes and remotes:FindFirstChild("CombatRemote")
 		if cr then cr:FireServer("Death") end
 	end)
-	-- Set spawn selection to chosen kaiju
-	task.delay(1, function()
-		local idx = SPAWN_INDEX[Config.Respawn.Island] or 1
-		SetSpawnSelection(idx, kaijuName)
-		PressSpawn()
-		Notify("Respawning with " .. kaijuName .. " on " .. Config.Respawn.Island, 3)
-	end)
+	Notify("Resetting... will respawn as " .. kaijuName, 3)
 end })
 MyKaijusGroup:AddLabel("Select a kaiju then click Reset and Respawn to re-equip it after death", true)
 
