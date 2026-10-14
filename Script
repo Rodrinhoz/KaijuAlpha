@@ -91,6 +91,422 @@ local function Notify(content, duration)
 	print("[Kaiju Hub] " .. tostring(content))
 end
 
+-- ================= I18N / TRANSLATION SYSTEM =================
+local Locales = {
+	en = {
+		-- Tab names
+		TabAim = "Aim",
+		TabESP = "ESP",
+		TabFarm = "Farm",
+		TabBoss = "Boss",
+		TabMisc = "Misc",
+		TabMovement = "Movement",
+		TabSettings = "Settings",
+		TabPlayer = "Player",
+		-- Groupbox names
+		GB_FOVCircle = "FOV Circle",
+		GB_SilentAimbot = "Silent Aimbot",
+		GB_ESPMain = "Main",
+		GB_ESPVisuals = "Visuals",
+		GB_BeamBuilds = "Beam Builds",
+		GB_BeamPlayers = "Beam Players",
+		GB_RespawnIslands = "Respawn & Islands",
+		GB_AutoKill = "Auto Kill Players",
+		GB_BossMonitor = "Shin Eva Godzilla",
+		GB_BossFarm = "Auto Farm",
+		GB_VoteKick = "Votekick Auto",
+		GB_Speed = "Speed (SpeedMulti)",
+		GB_UI = "UI",
+		GB_Server = "Server",
+		-- Toggle/Slider/Button labels
+		Lbl_ShowFOV = "Show FOV",
+		Lbl_FOVRadius = "FOV Radius",
+		Lbl_FOVColor = "FOV Color",
+		Lbl_TargetPart = "Target Part",
+		Lbl_SilentEnabled = "Silent Enabled",
+		Lbl_SilentOnlyAttack = "Only while attacking",
+		Lbl_SilentRange = "Max Range",
+		Lbl_SilentPart = "Target Part",
+		Lbl_SilentNote = "Your aim does NOT move. Point mouse near enemy (inside circle) and shot goes to them. Always.",
+		Lbl_ESPEnabled = "Enabled",
+		Lbl_ESPTeamCheck = "Team Check",
+		Lbl_ESPMaxDist = "Max Distance",
+		Lbl_ESPTextSize = "Text Size",
+		Lbl_ESPRefresh = "Refresh ESP",
+		Lbl_ESPName = "Show Name",
+		Lbl_ESPHealth = "Show Health",
+		Lbl_ESPDist = "Show Distance",
+		Lbl_ESPChams = "Show Chams",
+		Lbl_ESPFill = "Chams Fill Transparency",
+		Lbl_ESPOutline = "Chams Outline Transparency",
+		Lbl_FarmBuilds = "Beam Buildings",
+		Lbl_FarmBuildRange = "Buildings Range",
+		Lbl_FarmWallcheck = "Wallcheck (buildings & players)",
+		Lbl_FarmNote = "Max rotation: changes target every frame. Just enable and hold beam.",
+		Lbl_FarmPlayers = "Beam Players (rotating)",
+		Lbl_FarmPlayersNote = "Rotates through alive in range skipping immune (IFrame) & walls. Rotates every frame.",
+		Lbl_AutoFarm = "Auto farm (platform + spam beam)",
+		Lbl_BeamAlto = "Beam Alto (keeps you up, returns)",
+		Lbl_SkyAlt = "Platform Height",
+		Lbl_Efficient = "Efficient Beam (short range)",
+		Lbl_EfficientRange = "Efficient Distance",
+		Lbl_RespawnAuto = "Go to island on respawn",
+		Lbl_RespawnIsland = "Island on Respawn",
+		Lbl_GoIsland = "Go to Island Now",
+		Lbl_RespawnNote = "If you die and game respawns you, takes you to chosen island. If asks Play, press manually.",
+		Lbl_Suicide = "SUICIDE (die now, even in combat)",
+		Lbl_KillEnabled = "Auto Kill Players",
+		Lbl_KillTargets = "Target Players (empty = all)",
+		Lbl_KillExclude = "Exclude Players",
+		Lbl_KillAttacks = "Attacks to Spam",
+		Lbl_KillStick = "Stick Distance",
+		Lbl_KillPos = "Position (same height + forced look)",
+		Lbl_KillSwitch = "Switch Target Every (s)",
+		Lbl_KillInterval = "Attack Interval (s)",
+		Lbl_KillRefresh = "Refresh Player List",
+		Lbl_BossTimer = "Time Left: --:--",
+		Lbl_BossPlayers = "In Zone: --/--",
+		Lbl_BossState = "Boss HP: --",
+		Lbl_BossDmg = "Damage Done: --",
+		Lbl_GoBossPortal = "Go to Boss Zone (Portal)",
+		Lbl_BossFarmOn = "Auto Farm Boss",
+		Lbl_BossDodge = "Skill Dodger",
+		Lbl_BossStick = "Stick Distance",
+		Lbl_BossAttacks = "Skills to Use",
+		Lbl_BossAutoRespawn = "Auto Respawn to Boss",
+		Lbl_BossFarmNote = "Welded BEHIND boss: travel stuck without jumps. Rotates skills by real cooldown. Dodges by going up +100.",
+		Lbl_VoteAll = "Vote All (respects exclusions)",
+		Lbl_VoteYes = "Auto Vote YES",
+		Lbl_VoteSolo = "Only Selected (empty = all)",
+		Lbl_VoteExclude = "Exclude Players",
+		Lbl_VoteAutoFriends = "Auto Exclude Friends",
+		Lbl_VoteRefresh = "Refresh Lists",
+		Lbl_VoteNote = "Tested: 10 votes coexist. Opens 1/s. Excluded: total abstention.",
+		Lbl_MoveEnabled = "Speed Enabled",
+		Lbl_MoveSprint = "Sprint Increase (%) [max 50]",
+		Lbl_MoveWalk = "Walk Increase (%) [max 50]",
+		Lbl_MoveReset = "Reset Speed (force normal)",
+		Lbl_MoveNote = "0% = normal, 50% = 1.5x (Anti cap). Only SpeedMulti: never touches WalkSpeed.",
+		Lbl_Unload = "Unload Hub",
+		Lbl_Autoload = "Autoload script on inject",
+		Lbl_MenuKeybind = "Menu Keybind",
+		Lbl_Rejoin = "Rejoin Current Server",
+		Lbl_ServerHop = "Server Hop",
+		Lbl_HopLowPop = "Hop Low Population",
+		-- Notify messages
+		Msg_SilentOn = "Silent ON: shoot near enemy",
+		Msg_SilentFail = "Could not install (see console)",
+		Msg_FarmBuildsOn = "Farm builds ON: hold your beam (key 5)",
+		Msg_FarmBuildsFail = "Hooks not installed",
+		Msg_FarmPlayersOn = "Farm players ON: infinite range & FOV, instant switch",
+		Msg_FarmPlayersFail = "Hooks not installed",
+		Msg_AutoFarmOn = "Auto farm ON (uses %s: %ds CD, %d energy)",
+		Msg_BeamAltoOn = "Beam Alto ON",
+		Msg_RespawnSet = "On death you return to %s",
+		Msg_TeleportIsland = "Teleported to %s",
+		Msg_SuicideSent = "Forced death sent",
+		Msg_KillOn = "Auto kill ON: sticks & spams",
+		Msg_KillRefresh = "List updated (%d)",
+		Msg_VoteOn = "Votekick auto ON",
+		Msg_FriendsExcluded = "%d friends excluded (auto every 30s)",
+		Msg_NoFriends = "No friends in server (watching)",
+		Msg_VoteRefresh = "Lists updated (%d)",
+		Msg_MoveReset = "Speed restored (SpeedMulti=base, no WalkSpeed touch)",
+		Msg_AutoloadOn = "Autoload ENABLED",
+		Msg_AutoloadOff = "Autoload disabled",
+		Msg_NoFileAccess = "No file access",
+		Msg_Rejoining = "Rejoining...",
+		Msg_SearchingServer = "Searching server...",
+		Msg_NoServers = "No servers found",
+		Msg_SearchingEmpty = "Searching empty server...",
+		Msg_Loaded = "Kaiju Hub v1.0.18 loaded (PealLib)",
+		Msg_Unload = "Unloading...",
+		Msg_BossSpawnIn = "Boss in %d seconds (%d/%d)",
+		Msg_BossAppeared = "BOSS APPEARED: %s",
+		Msg_BackToBoss = "Back to boss",
+		Msg_BackToPos = "Back to your position",
+		Msg_RespawnedSafezone = "Respawned in Safezone",
+		Msg_RespawnedIsland = "Respawned in %s",
+		Msg_SpawnManual = "Press Play + Spawn manually",
+		Msg_Spawning = "Spawning in %s...",
+		Msg_SpeedRestored = "Velocity restored (SpeedMulti=base, no WalkSpeed touch)",
+	},
+	es = {
+		TabAim = "Mira",
+		TabESP = "ESP",
+		TabFarm = "Farmeo",
+		TabBoss = "Jefe",
+		TabMisc = "Varios",
+		TabMovement = "Movimiento",
+		TabSettings = "Ajustes",
+		TabPlayer = "Jugador",
+		GB_FOVCircle = "Círculo FOV",
+		GB_SilentAimbot = "Silent Aim",
+		GB_ESPMain = "Principal",
+		GB_ESPVisuals = "Visuales",
+		GB_BeamBuilds = "Rayos a Edificios",
+		GB_BeamPlayers = "Rayos a Jugadores",
+		GB_RespawnIslands = "Reaparecer e Islas",
+		GB_AutoKill = "Auto Kill Jugadores",
+		GB_BossMonitor = "Shin Eva Godzilla",
+		GB_BossFarm = "Auto Farmeo",
+		GB_VoteKick = "Votekick Auto",
+		GB_Speed = "Velocidad (SpeedMulti)",
+		GB_UI = "Interfaz",
+		GB_Server = "Servidor",
+		Lbl_ShowFOV = "Mostrar FOV",
+		Lbl_FOVRadius = "Radio FOV",
+		Lbl_FOVColor = "Color FOV",
+		Lbl_TargetPart = "Parte Objetivo",
+		Lbl_SilentEnabled = "Silent Activado",
+		Lbl_SilentOnlyAttack = "Solo mientras ataco",
+		Lbl_SilentRange = "Rango Máximo",
+		Lbl_SilentPart = "Parte Objetivo",
+		Lbl_SilentNote = "Tu mira NO se mueve. Apunta con el ratón cerca del enemigo (dentro del círculo) y el disparo va a él. Siempre.",
+		Lbl_ESPEnabled = "Activado",
+		Lbl_ESPTeamCheck = "Comprobar Equipo",
+		Lbl_ESPMaxDist = "Distancia Máxima",
+		Lbl_ESPTextSize = "Tamaño Texto",
+		Lbl_ESPRefresh = "Refrescar ESP",
+		Lbl_ESPName = "Mostrar Nombre",
+		Lbl_ESPHealth = "Mostrar Vida",
+		Lbl_ESPDist = "Mostrar Distancia",
+		Lbl_ESPChams = "Mostrar Chams",
+		Lbl_ESPFill = "Transparencia Relleno Chams",
+		Lbl_ESPOutline = "Transparencia Contorno Chams",
+		Lbl_FarmBuilds = "Rayos a Edificios",
+		Lbl_FarmBuildRange = "Rango Edificios",
+		Lbl_FarmWallcheck = "Wallcheck (edificios y players)",
+		Lbl_FarmNote = "Rotación máxima: cambia de objetivo cada frame. Solo activa y mantén el rayo.",
+		Lbl_FarmPlayers = "Rayos a Jugadores (rotando)",
+		Lbl_FarmPlayersNote = "Rota por los vivos en rango saltando inmunes (IFrame) y muros. Rota cada frame.",
+		Lbl_AutoFarm = "Auto farmeo (plataforma + spam rayo)",
+		Lbl_BeamAlto = "Rayo Alto (te mantiene arriba, vuelve)",
+		Lbl_SkyAlt = "Altura Plataforma",
+		Lbl_Efficient = "Rayo Eficiente (distancia corta)",
+		Lbl_EfficientRange = "Distancia Eficiente",
+		Lbl_RespawnAuto = "Ir a la isla al reaparecer",
+		Lbl_RespawnIsland = "Isla al Reaparecer",
+		Lbl_GoIsland = "Ir a Isla Ahora",
+		Lbl_RespawnNote = "Si mueres y el juego te reaparece, te lleva a la isla elegida. Si pide Play, púlsalo manual.",
+		Lbl_Suicide = "SUICIDIO (morir ya, aun en combate)",
+		Lbl_KillEnabled = "Auto Kill Jugadores",
+		Lbl_KillTargets = "Jugadores Objetivo (vacío = todos)",
+		Lbl_KillExclude = "Excluir Jugadores",
+		Lbl_KillAttacks = "Ataques a Spamear",
+		Lbl_KillStick = "Distancia a Pegarse",
+		Lbl_KillPos = "Posición (misma altura + mirada forzada)",
+		Lbl_KillSwitch = "Cambiar Objetivo Cada (s)",
+		Lbl_KillInterval = "Intervalo Ataques (s)",
+		Lbl_KillRefresh = "Actualizar Lista de Jugadores",
+		Lbl_BossTimer = "Falta: --:--",
+		Lbl_BossPlayers = "En Zona: --/--",
+		Lbl_BossState = "Vida del Jefe: --",
+		Lbl_BossDmg = "Daño Causado: --",
+		Lbl_GoBossPortal = "Ir a Zona Jefe (Portal)",
+		Lbl_BossFarmOn = "Auto Farmeo Jefe",
+		Lbl_BossDodge = "Esquivador de Habilidades",
+		Lbl_BossStick = "Distancia Pegado",
+		Lbl_BossAttacks = "Habilidades a Usar",
+		Lbl_BossAutoRespawn = "Auto Reaparecer al Jefe",
+		Lbl_BossFarmNote = "Soldado DETRÁS del jefe: viajas pegado sin saltos. Rota tus skills por cooldown real. Esquiva subiendo +100.",
+		Lbl_VoteAll = "Votar a Todos (respeta exclusiones)",
+		Lbl_VoteYes = "Votar SÍ Automático",
+		Lbl_VoteSolo = "Solo Seleccionados (vacío = todos)",
+		Lbl_VoteExclude = "Excluir Jugadores",
+		Lbl_VoteAutoFriends = "Excluir Amigos Automático",
+		Lbl_VoteRefresh = "Actualizar Listas",
+		Lbl_VoteNote = "Probado: las 10 votaciones conviven. Se abren de a 1/s. Excluidos: abstención total.",
+		Lbl_MoveEnabled = "Velocidad Activada",
+		Lbl_MoveSprint = "Aumento Sprint (%) [máx 50]",
+		Lbl_MoveWalk = "Aumento Caminar (%) [máx 50]",
+		Lbl_MoveReset = "Reset Velocidad (forzar normal)",
+		Lbl_MoveNote = "0% = normal, 50% = 1.5x (tope del Anti). Solo SpeedMulti: nunca toca WalkSpeed.",
+		Lbl_Unload = "Descargar Hub",
+		Lbl_Autoload = "Autocargar script al inyectar",
+		Lbl_MenuKeybind = "Tecla Menú",
+		Lbl_Rejoin = "Reentrar al Servidor Actual",
+		Lbl_ServerHop = "Cambiar Servidor",
+		Lbl_HopLowPop = "Cambiar a Servidor Vacío",
+		Msg_SilentOn = "Silent ON: dispara cerca del enemigo",
+		Msg_SilentFail = "No se pudo instalar (ver consola)",
+		Msg_FarmBuildsOn = "Farmeo edificios ON: mantén tu rayo (tecla 5)",
+		Msg_FarmBuildsFail = "No se instalaron los hooks",
+		Msg_FarmPlayersOn = "Farmeo jugadores ON: rango y FOV infinitos, cambio insta",
+		Msg_FarmPlayersFail = "No se instalaron los hooks",
+		Msg_AutoFarmOn = "Auto farmeo ON (usa %s: %ds CD, %d energía)",
+		Msg_BeamAltoOn = "Rayo Alto ON",
+		Msg_RespawnSet = "Al morir vuelves a %s",
+		Msg_TeleportIsland = "Teletransportado a %s",
+		Msg_SuicideSent = "Muerte forzada enviada",
+		Msg_KillOn = "Auto kill ON: se pega y spamea",
+		Msg_KillRefresh = "Lista actualizada (%d)",
+		Msg_VoteOn = "Votekick auto ON",
+		Msg_FriendsExcluded = "%d amigos excluidos (auto cada 30s)",
+		Msg_NoFriends = "Sin amigos en el server (vigilando)",
+		Msg_VoteRefresh = "Listas actualizadas (%d)",
+		Msg_MoveReset = "Velocidad restaurada (SpeedMulti=base, sin tocar WalkSpeed)",
+		Msg_AutoloadOn = "Autocarga ACTIVADA",
+		Msg_AutoloadOff = "Autocarga apagada",
+		Msg_NoFileAccess = "Sin acceso a archivos",
+		Msg_Rejoining = "Reentrando...",
+		Msg_SearchingServer = "Buscando servidor...",
+		Msg_NoServers = "No se encontraron servidores",
+		Msg_SearchingEmpty = "Buscando servidor vacío...",
+		Msg_Loaded = "Kaiju Hub v1.0.18 cargado (PealLib)",
+		Msg_Unload = "Descargando...",
+		Msg_BossSpawnIn = "Jefe en %d segundos (%d/%d)",
+		Msg_BossAppeared = "¡JEFE APARECIÓ: %s!",
+		Msg_BackToBoss = "De vuelta al jefe",
+		Msg_BackToPos = "De vuelta a tu posición",
+		Msg_RespawnedSafezone = "Reaparecido en Safezone",
+		Msg_RespawnedIsland = "Reaparecido en %s",
+		Msg_SpawnManual = "Pulsa Play + Spawn manual",
+		Msg_Spawning = "Spawneando en %s...",
+		Msg_SpeedRestored = "Velocidad restaurada (SpeedMulti=base, sin tocar WalkSpeed)",
+	},
+	pt = {
+		TabAim = "Mira",
+		TabESP = "ESP",
+		TabFarm = "Farm",
+		TabBoss = "Chefe",
+		TabMisc = "Vários",
+		TabMovement = "Movimento",
+		TabSettings = "Configurações",
+		TabPlayer = "Jogador",
+		GB_FOVCircle = "Círculo FOV",
+		GB_SilentAimbot = "Silent Aim",
+		GB_ESPMain = "Principal",
+		GB_ESPVisuals = "Visuais",
+		GB_BeamBuilds = "Raio em Prédios",
+		GB_BeamPlayers = "Raio em Jogadores",
+		GB_RespawnIslands = "Respawn e Ilhas",
+		GB_AutoKill = "Auto Kill Jogadores",
+		GB_BossMonitor = "Shin Eva Godzilla",
+		GB_BossFarm = "Auto Farm",
+		GB_VoteKick = "Votekick Auto",
+		GB_Speed = "Velocidade (SpeedMulti)",
+		GB_UI = "Interface",
+		GB_Server = "Servidor",
+		Lbl_ShowFOV = "Mostrar FOV",
+		Lbl_FOVRadius = "Raio FOV",
+		Lbl_FOVColor = "Cor FOV",
+		Lbl_TargetPart = "Parte Alvo",
+		Lbl_SilentEnabled = "Silent Ativado",
+		Lbl_SilentOnlyAttack = "Sólo enquanto ataco",
+		Lbl_SilentRange = "Alcance Máximo",
+		Lbl_SilentPart = "Parte Alvo",
+		Lbl_SilentNote = "Sua mira NÃO se move. Aponte o mouse perto do inimigo (dentro do círculo) e o tiro vai nele. Sempre.",
+		Lbl_ESPEnabled = "Ativado",
+		Lbl_ESPTeamCheck = "Verificar Time",
+		Lbl_ESPMaxDist = "Distância Máxima",
+		Lbl_ESPTextSize = "Tamanho Texto",
+		Lbl_ESPRefresh = "Atualizar ESP",
+		Lbl_ESPName = "Mostrar Nome",
+		Lbl_ESPHealth = "Mostrar Vida",
+		Lbl_ESPDist = "Mostrar Distância",
+		Lbl_ESPChams = "Mostrar Chams",
+		Lbl_ESPFill = "Transparência Preenchimento Chams",
+		Lbl_ESPOutline = "Transparência Contorno Chams",
+		Lbl_FarmBuilds = "Raio em Prédios",
+		Lbl_FarmBuildRange = "Alcance Prédios",
+		Lbl_FarmWallcheck = "Wallcheck (prédios e players)",
+		Lbl_FarmNote = "Rotação máxima: muda alvo cada frame. Só ative e segure o raio.",
+		Lbl_FarmPlayers = "Raio em Jogadores (rotacionando)",
+		Lbl_FarmPlayersNote = "Roda pelos vivos no alcance pulando imunes (IFrame) e muros. Roda cada frame.",
+		Lbl_AutoFarm = "Auto farm (plataforma + spam raio)",
+		Lbl_BeamAlto = "Raio Alto (mantém você em cima, volta)",
+		Lbl_SkyAlt = "Altura da Plataforma",
+		Lbl_Efficient = "Raio Eficiente (curta distância)",
+		Lbl_EfficientRange = "Distância Eficiente",
+		Lbl_RespawnAuto = "Ir para ilha ao reaparecer",
+		Lbl_RespawnIsland = "Ilha ao Reaparecer",
+		Lbl_GoIsland = "Ir para Ilha Agora",
+		Lbl_RespawnNote = "Se você morrer e o jogo te reaparecer, leva para a ilha escolhida. Se pedir Play, aperte manual.",
+		Lbl_Suicide = "SUICÍDIO (morrer agora, mesmo em combate)",
+		Lbl_KillEnabled = "Auto Kill Jogadores",
+		Lbl_KillTargets = "Jogadores Alvo (vazio = todos)",
+		Lbl_KillExclude = "Excluir Jogadores",
+		Lbl_KillAttacks = "Ataques para Spamar",
+		Lbl_KillStick = "Distância para Colar",
+		Lbl_KillPos = "Posição (mesma altura + olhar forçado)",
+		Lbl_KillSwitch = "Trocar Alvo A Cada (s)",
+		Lbl_KillInterval = "Intervalo Ataques (s)",
+		Lbl_KillRefresh = "Atualizar Lista de Jogadores",
+		Lbl_BossTimer = "Falta: --:--",
+		Lbl_BossPlayers = "Na Zona: --/--",
+		Lbl_BossState = "Vida do Chefe: --",
+		Lbl_BossDmg = "Dano Causado: --",
+		Lbl_GoBossPortal = "Ir para Zona do Chefe (Portal)",
+		Lbl_BossFarmOn = "Auto Farm Chefe",
+		Lbl_BossDodge = "Esquivador de Habilidades",
+		Lbl_BossStick = "Distância Colado",
+		Lbl_BossAttacks = "Habilidades a Usar",
+		Lbl_BossAutoRespawn = "Auto Respawn no Chefe",
+		Lbl_BossFarmNote = "Soldado ATRÁS do chefe: viaja colado sem pulos. Rota skills por cooldown real. Esquiva subindo +100.",
+		Lbl_VoteAll = "Votar em Todos (respeita exclusões)",
+		Lbl_VoteYes = "Votar SIM Automático",
+		Lbl_VoteSolo = "Apenas Selecionados (vazio = todos)",
+		Lbl_VoteExclude = "Excluir Jogadores",
+		Lbl_VoteAutoFriends = "Excluir Amigos Automático",
+		Lbl_VoteRefresh = "Atualizar Listas",
+		Lbl_VoteNote = "Testado: 10 votações coexistem. Abrem 1/s. Excluídos: abstenção total.",
+		Lbl_MoveEnabled = "Velocidade Ativada",
+		Lbl_MoveSprint = "Aumento Sprint (%) [máx 50]",
+		Lbl_MoveWalk = "Aumento Andar (%) [máx 50]",
+		Lbl_MoveReset = "Reset Velocidade (forçar normal)",
+		Lbl_MoveNote = "0% = normal, 50% = 1.5x (limite do Anti). Apenas SpeedMulti: nunca toca WalkSpeed.",
+		Lbl_Unload = "Descarregar Hub",
+		Lbl_Autoload = "Carregar script automaticamente ao injetar",
+		Lbl_MenuKeybind = "Tecla do Menu",
+		Lbl_Rejoin = "Reentrar no Servidor Atual",
+		Lbl_ServerHop = "Trocar Servidor",
+		Lbl_HopLowPop = "Trocar para Servidor Vazio",
+		Msg_SilentOn = "Silent ON: atire perto do inimigo",
+		Msg_SilentFail = "Não foi possível instalar (veja console)",
+		Msg_FarmBuildsOn = "Farm prédios ON: segure seu raio (tecla 5)",
+		Msg_FarmBuildsFail = "Hooks não instalados",
+		Msg_FarmPlayersOn = "Farm jogadores ON: alcance e FOV infinitos, troca instantânea",
+		Msg_FarmPlayersFail = "Hooks não instalados",
+		Msg_AutoFarmOn = "Auto farm ON (usa %s: %ds CD, %d energia)",
+		Msg_BeamAltoOn = "Raio Alto ON",
+		Msg_RespawnSet = "Ao morrer você volta para %s",
+		Msg_TeleportIsland = "Teletransportado para %s",
+		Msg_SuicideSent = "Morte forçada enviada",
+		Msg_KillOn = "Auto kill ON: cola e spama",
+		Msg_KillRefresh = "Lista atualizada (%d)",
+		Msg_VoteOn = "Votekick auto ON",
+		Msg_FriendsExcluded = "%d amigos excluídos (auto a cada 30s)",
+		Msg_NoFriends = "Sem amigos no server (vigiando)",
+		Msg_VoteRefresh = "Listas atualizadas (%d)",
+		Msg_MoveReset = "Velocidade restaurada (SpeedMulti=base, sem tocar WalkSpeed)",
+		Msg_AutoloadOn = "Autocarga ATIVADA",
+		Msg_AutoloadOff = "Autocarga desligada",
+		Msg_NoFileAccess = "Sem acesso a arquivos",
+		Msg_Rejoining = "Reentrando...",
+		Msg_SearchingServer = "Procurando servidor...",
+		Msg_NoServers = "Nenhum servidor encontrado",
+		Msg_SearchingEmpty = "Procurando servidor vazio...",
+		Msg_Loaded = "Kaiju Hub v1.0.18 carregado (PealLib)",
+		Msg_Unload = "Descarregando...",
+		Msg_BossSpawnIn = "Chefe em %d segundos (%d/%d)",
+		Msg_BossAppeared = "CHEFE APARECEU: %s!",
+		Msg_BackToBoss = "De volta ao chefe",
+		Msg_BackToPos = "De volta à sua posição",
+		Msg_RespawnedSafezone = "Reaparecido em Safezone",
+		Msg_RespawnedIsland = "Reaparecido em %s",
+		Msg_SpawnManual = "Aperte Play + Spawn manual",
+		Msg_Spawning = "Spawneando em %s...",
+		Msg_SpeedRestored = "Velocidade restaurada (SpeedMulti=base, sem tocar WalkSpeed)",
+	},
+}
+
+local function L(key)
+	local lang = State.Lang or "en"
+	local loc = Locales[lang] or Locales.en
+	return loc[key] or Locales.en[key] or key
+end
+
 print("[Kaiju Hub] PealLib loaded, creating UI...")
 
 -- ================= CONFIG =================
@@ -106,6 +522,8 @@ local Config = {
 	Respawn = { Auto = false, Island = "Tokyo" },
 	Vote = { AutoAll = false, AutoYes = true, AutoFriends = false, Solo = {}, Exclude = {} },
 	BossFarm = { Enabled = false, Dodge = true, Attacks = { Attack1 = true }, AutoRespawn = true, StickDist = 12 },
+	QuestFarm = { Enabled = false, AutoSelect = true, DegradeStuck = true },
+	FarmKaijus = { Enabled = false, Target = "", ProgressLabel = nil, ReqLabel = nil, StatusLabel = nil },
 }
 
 -- ================= STATE =================
@@ -149,27 +567,62 @@ local State = {
 	LastBossFarmTick = 0,
 	NextBossAttack = 0,
 	Unloaded = false,
+	-- Farm / BeamAlto / AutoFarm
+	SkyPlatform = nil,
+	LastAutoTick = 0,
+	NextBeamAt = 0,
+	BeamAltoPrev = false,
+	BeamAltoPrevAttr = false,
+	BeamAltoPrevObj = false,
+	BeamAltoReturn = nil,
+	BeamAltoMode = nil,
+	BeamAltoEndAt = nil,
+	AltoTop = nil,
+	LastAltoPin = 0,
+	BeamAltoStartAt = 0,
+	-- Respawn / Position
+	LastPos = nil,
+	LastPosSave = 0,
+	LastSpawnTry = 0,
+	PendingIslandTp = nil,
+	PreFarmPos = nil,
+	-- Vote
+	VoteWorking = false,
+	LastFriendScan = 0,
+	-- Boss UI
+	BossTimerLabel = nil,
+	LastBossSecs = 0,
+	BossCDs = {},
+	-- FOV
+	LastFOVCreate = 0,
+	-- AutoFarm notify throttle
+	LastBeamNotify = 0,
+	-- Quest Farm
+	QuestCurrentId = nil,
+	QuestCurrentType = nil,
+	QuestLastCheck = 0,
+	QuestLastProgress = 0,
+	QuestStuckCount = 0,
+	-- FarmKaijus
+	FarmKaijuTarget = nil,
+	FarmKaijuStage = 0, -- 0=idle, 1=checking reqs, 2=progressing req, 3=buying
+	FarmKaijuReqIndex = 1,
+	FarmKaijuLastAction = 0,
+	FarmKaijuErrorCount = 0,
+	-- My Kaijus / Shop
+	MyKaijuList = {},
+	LastInventoryRefresh = 0,
+	-- i18n
+	Lang = "en",
 }
 
-local function tableCount(t)
-	local n = 0
-	for _ in pairs(t) do n += 1 end
-	return n
-end
+-- UI slider references (set during UI creation, used in ResetMovementState)
+local MoveSprintSlider = nil
+local MoveWalkSlider = nil
 
 -- ================= SAFE HELPERS =================
 local function GetLiveFolder()
 	return Workspace:FindFirstChild("Live")
-end
-
-local function GetDebrisFolder()
-	-- No asumir que existe Workspace.Map.Debris
-	local map = Workspace:FindFirstChild("Map")
-	if map then
-		local debris = map:FindFirstChild("Debris")
-		if debris then return debris end
-	end
-	return Workspace:FindFirstChild("Debris")
 end
 
 local function GetMyKaiju(useCache)
@@ -201,6 +654,20 @@ local function OnMyKaijuChanged()
 	if State.MoveKaiju and State.MoveKaiju.Parent and State.MoveBase ~= nil then
 		pcall(State.MoveKaiju.SetAttribute, State.MoveKaiju, "SpeedMulti", State.MoveBase)
 	end
+	-- Cleanup boss weld (B14)
+	UnweldBoss()
+	-- Cleanup BeamAlto state on death (B7)
+	State.BeamAltoReturn = nil
+	State.BeamAltoMode = nil
+	State.BeamAltoEndAt = nil
+	State.AltoTop = nil
+	State.BeamAltoPrev = false
+	State.BeamAltoPrevAttr = false
+	State.BeamAltoPrevObj = false
+	State.BeamAltoStartAt = 0
+	State.LastAltoPin = 0
+	-- Cleanup AutoFarm platform on death (B3)
+	ReleaseSkyPlatform()
 	State.MyKaijuCache = nil
 	State.MoveBase = nil
 	State.MoveLastApplied = nil
@@ -258,6 +725,234 @@ local function SyncFOV()
 		local o = Tgl("AimShowFOV")
 		if o then o:SetValue(Config.Aim.ShowFOV) end
 	end)
+end
+
+-- ================= KAIJU DATA & SHOP HELPERS =================
+-- Known kaiju requirements (from game data)
+local KAIJU_REQUIREMENTS = {
+	["Shinagawa Kun"] = { Price = 2400, Requirements = { ["Kamata Kun"] = { Level = 15 } } },
+	["Biollante"] = { Price = 0, Requirements = { ["Rose Biollante"] = { Level = 75 } } },
+	["Kong 2021"] = { Price = 0, Requirements = { ["Kong 2017"] = { Level = 50, Kills = 20 } } },
+	["Shin Godzilla"] = { Price = 0, Requirements = { ["Shinagawa Kun"] = { Level = 50 } } },
+	["Mecha Godzilla 2021"] = { Price = 0, Requirements = { ["Mecha Godzilla 2021 Remodel"] = { Level = 50 } } },
+	["Burning Godzilla"] = { Price = 0, Requirements = { ["Godzilla 2019"] = { Level = 75 } } },
+	["Godzilla Ultima"] = { Price = 0, Requirements = { ["Shin Godzilla"] = { Level = 75 } } },
+	["Destoroyah Final Form"] = { Price = 0, Requirements = { ["Destoroyah Aggregate"] = { Level = 75 } } },
+	["Final Wars Godzilla"] = { Price = 0, Requirements = { ["Godzilla 2021"] = { Level = 75 } } },
+	["Kiryu Type 3"] = { Price = 0, Requirements = { ["Mecha Godzilla 2021"] = { Level = 50 } } },
+	["SuperMechaGodzilla"] = { Price = 0, Requirements = { ["Mecha Godzilla 2021"] = { Level = 50 } } },
+	["Thermonuclear Godzilla"] = { Price = 0, Requirements = { ["Burning Godzilla"] = { Level = 75 } } },
+}
+
+local function GetKaijuRequirement(kaijuName)
+	return KAIJU_REQUIREMENTS[kaijuName] or { Price = 0, Requirements = {} }
+end
+
+local function GetPlayerDataFolder()
+	local rs = game:GetService("ReplicatedStorage")
+	local lp = game:GetService("Players").LocalPlayer
+	if not lp then return nil end
+	return rs.Data:FindFirstChild(lp.UserId .. "_Data")
+end
+
+local function GetOwnedKaijus()
+	local dataFolder = GetPlayerDataFolder()
+	if not dataFolder then return {} end
+	local inv = dataFolder:FindFirstChild("KaijuInventory")
+	if not inv then return {} end
+	local owned = {}
+	for _, kaiju in pairs(inv:GetChildren()) do
+		local level = kaiju:FindFirstChild("Level")
+		local kills = kaiju:FindFirstChild("Kills")
+		local exp = kaiju:FindFirstChild("Exp")
+		local fav = kaiju:FindFirstChild("Favourite")
+		owned[kaiju.Name] = {
+			Level = level and level.Value or 1,
+			Kills = kills and kills.Value or 0,
+			Exp = exp and exp.Value or 0,
+			Favourite = fav and fav.Value or false,
+			MaxLevel = kaiju:FindFirstChild("MaxLevel") and kaiju.MaxLevel.Value or 100,
+			LimitBreak = kaiju:FindFirstChild("LimitBreak") and kaiju.LimitBreak.Value or false,
+		}
+	end
+	return owned
+end
+
+local function GetCurrency()
+	local dataFolder = GetPlayerDataFolder()
+	if not dataFolder then return { Cells = 0, Gems = 0 } end
+	local cells = dataFolder:FindFirstChild("Cells")
+	local gems = dataFolder:FindFirstChild("Gems")
+	return {
+		Cells = cells and cells.Value or 0,
+		Gems = gems and gems.Value or 0,
+	}
+end
+
+local function IsKaijuOwned(kaijuName)
+	local owned = GetOwnedKaijus()
+	return owned[kaijuName] ~= nil
+end
+
+local function GetKaijuLevel(kaijuName)
+	local owned = GetOwnedKaijus()
+	return owned[kaijuName] and owned[kaijuName].Level or 0
+end
+
+local function CheckRequirementMet(reqName, reqData)
+	local level = GetKaijuLevel(reqName)
+	if reqData.Level and level < reqData.Level then return false, "Level " .. level .. "/" .. reqData.Level end
+	if reqData.Kills then
+		local owned = GetOwnedKaijus()
+		local kills = owned[reqName] and owned[reqName].Kills or 0
+		if kills < reqData.Kills then return false, "Kills " .. kills .. "/" .. reqData.Kills end
+	end
+	return true, "OK"
+end
+
+local function PurchaseKaiju(kaijuName)
+	local rs = game:GetService("ReplicatedStorage")
+	local purchaseRemote = rs.Remotes:FindFirstChild("PurchaseRemote")
+	if not purchaseRemote then return false, "PurchaseRemote not found" end
+	
+	-- Check if it's an event kaiju (in GameData.Shop.Kaiju)
+	local shared = rs:FindFirstChild("Shared")
+	local isEventKaiju = false
+	if shared then
+		local gameData = shared:FindFirstChild("GameData")
+		if gameData then
+			local ok, gd = pcall(require, gameData)
+			if ok and type(gd) == "table" and gd.Shop and gd.Shop.Kaiju and gd.Shop.Kaiju[kaijuName] then
+				isEventKaiju = true
+			end
+		end
+	end
+	
+	local ok, result = pcall(function()
+		if isEventKaiju then
+			return purchaseRemote:FireServer("Gift", { TargetId = game:GetService("Players").LocalPlayer.UserId, Name = kaijuName })
+		else
+			return purchaseRemote:FireServer("Buy", kaijuName)
+		end
+	end)
+	
+	if ok then
+		return true, "Purchase request sent"
+	else
+		return false, "Purchase failed: " .. tostring(result)
+	end
+end
+
+-- ================= QUEST HELPERS =================
+local function GetQuests()
+	local rs = game:GetService("ReplicatedStorage")
+	local invokeQuest = rs.Remotes:FindFirstChild("InvokeQuest")
+	if not invokeQuest then return nil end
+	local ok, quests = pcall(function() return invokeQuest:InvokeServer("GetQuests") end)
+	if ok then return quests end
+	return nil
+end
+
+local function ClaimQuest(questType, questId)
+	local rs = game:GetService("ReplicatedStorage")
+	local invokeQuest = rs.Remotes:FindFirstChild("InvokeQuest")
+	if not invokeQuest then return false end
+	local ok, result = pcall(function() return invokeQuest:InvokeServer("Claim", questType, questId) end)
+	return ok and result
+end
+
+local function GetAvailableQuests()
+	local quests = GetQuests()
+	if not quests then return {} end
+	local available = {}
+	-- Daily quests
+	if quests.Daily then
+		for _, q in pairs(quests.Daily) do
+			if not q.Completed and not q.Claimed and not q.Locked then
+				table.insert(available, { Type = "Daily", Quest = q })
+			elseif q.Completed and not q.Claimed and not q.Locked then
+				table.insert(available, { Type = "Daily", Quest = q, ReadyToClaim = true })
+			end
+		end
+	end
+	-- Premium quests
+	if quests.Premium then
+		for _, q in pairs(quests.Premium) do
+			if not q.Completed and not q.Claimed and not q.Locked then
+				table.insert(available, { Type = "Premium", Quest = q })
+			elseif q.Completed and not q.Claimed and not q.Locked then
+				table.insert(available, { Type = "Premium", Quest = q, ReadyToClaim = true })
+			end
+		end
+	end
+	return available
+end
+
+local function SelectBestQuest()
+	local available = GetAvailableQuests()
+	if #available == 0 then return nil end
+	
+	-- Priority: Ready to claim > Kill/Any > Walk/Swim/Fly > BuildingBeam > BuildingDestroy > BossKill/Damage > PlayTime
+	local priority = {
+		Kill = 10, KillTarget = 9, KillAny = 9,
+		Walk = 8, Swimming = 8, Flying = 8,
+		BuildingBeam = 7, BuildingDestroy = 6,
+		BossKill = 5, BossDamage = 5,
+		PlayTime = 4,
+	}
+	
+	table.sort(available, function(a, b)
+		local pa = a.ReadyToClaim and 100 or (priority[a.Quest.Category] or 0)
+		local pb = b.ReadyToClaim and 100 or (priority[b.Quest.Category] or 0)
+		if pa ~= pb then return pa > pb end
+		-- Prefer higher progress ratio
+		local progA = a.Quest.Goal > 0 and (a.Quest.Progress / a.Quest.Goal) or 0
+		local progB = b.Quest.Goal > 0 and (b.Quest.Progress / b.Quest.Goal) or 0
+		return progA > progB
+	end)
+	
+	return available[1]
+end
+
+-- ================= FARM KAIJU HELPERS =================
+local function GetFarmKaijuStages(targetName)
+	local req = GetKaijuRequirement(targetName)
+	local stages = {}
+	
+	-- Stage 1: Check all requirements
+	for reqName, reqData in pairs(req.Requirements) do
+		table.insert(stages, {
+			Name = reqName,
+			Type = "Requirement",
+			Data = reqData,
+			Check = function() return CheckRequirementMet(reqName, reqData) end,
+		})
+	end
+	
+	-- Stage 2: Purchase target kaiju (if has price or is event)
+	if req.Price and req.Price > 0 then
+		table.insert(stages, {
+			Name = targetName,
+			Type = "Purchase",
+			Price = req.Price,
+			Check = function() 
+				local currency = GetCurrency()
+				return currency.Cells >= req.Price, "Cells: " .. currency.Cells .. "/" .. req.Price
+			end,
+			Action = function() return PurchaseKaiju(targetName) end,
+		})
+	elseif not IsKaijuOwned(targetName) then
+		-- Event kaiju or free unlock
+		table.insert(stages, {
+			Name = targetName,
+			Type = "Purchase",
+			Price = 0,
+			Check = function() return true, "Ready to unlock" end,
+			Action = function() return PurchaseKaiju(targetName) end,
+		})
+	end
+	
+	return stages
 end
 
 -- ================= FOV CIRCLE =================
@@ -603,8 +1298,8 @@ local function ResetMovementState()
 	pcall(function()
 		local t = Tgl("MoveEnabled")
 		if t then t:SetValue(false) end
-		if Options.MoveSprint then Options.MoveSprint:SetValue(0) end
-		if Options.MoveWalk then Options.MoveWalk:SetValue(0) end
+		if MoveSprintSlider then MoveSprintSlider:SetValue(0) end
+		if MoveWalkSlider then MoveWalkSlider:SetValue(0) end
 	end)
 	local base = State.MoveBase or State.InitialMoveBase or 1
 	task.spawn(function()
@@ -636,13 +1331,15 @@ end
 -- Wallcheck: rayo desde ti al objetivo; si hay pared en medio, no entra.
 -- Sin esto el beam apunta a edificios/jugadores detrás de muros y falla.
 local FarmRayParams = nil
+local FarmRayFilter = {} -- Reused filter table to avoid GC churn (B8)
 local function HasLOS(fromPos, toPos, targetModel, myKaiju)
 	if not FarmRayParams then
 		FarmRayParams = RaycastParams.new()
 		FarmRayParams.FilterType = Enum.RaycastFilterType.Exclude
 		FarmRayParams.IgnoreWater = true
 	end
-	FarmRayParams.FilterDescendantsInstances = { myKaiju }
+	FarmRayFilter[1] = myKaiju
+	FarmRayParams.FilterDescendantsInstances = FarmRayFilter
 	local dir = toPos - fromPos
 	if dir.Magnitude < 1 then return true end
 	local hit = Workspace:Raycast(fromPos, dir, FarmRayParams)
@@ -835,6 +1532,19 @@ end
 -- Auto farm: plataforma invisible en el cielo + spam de beam con su CD.
 -- Sin plataforma caes por gravedad y parece que "no sube". Con plataforma
 -- el juego te sostiene solo (física normal) y no hay que re-pinnear.
+-- Refcount system (B6): multiple features can share the platform
+local function AcquireSkyPlatform(skyTop)
+	State.SkyPlatformUsers = (State.SkyPlatformUsers or 0) + 1
+	return EnsureSkyPlatform(skyTop)
+end
+
+local function ReleaseSkyPlatform()
+	State.SkyPlatformUsers = math.max(0, (State.SkyPlatformUsers or 0) - 1)
+	if State.SkyPlatformUsers == 0 then
+		DestroySkyPlatform()
+	end
+end
+
 local function EnsureSkyPlatform(skyTop)
 	local p = State.SkyPlatform
 	if p and p.Parent then
@@ -863,6 +1573,7 @@ local function EnsureSkyPlatform(skyTop)
 end
 
 local function DestroySkyPlatform()
+	if (State.SkyPlatformUsers or 0) > 0 then return end -- Don't destroy if still in use (B6)
 	pcall(function() if State.SkyPlatform then State.SkyPlatform:Destroy() end end)
 	State.SkyPlatform = nil
 end
@@ -874,11 +1585,16 @@ local function AutoFarmTick()
 	State.LastAutoTick = now
 	local myKaiju = GetMyKaiju()
 	local myHRP = myKaiju and myKaiju:FindFirstChild("HumanoidRootPart")
-	if not myKaiju or not myHRP then return end
+	local myHum = myKaiju and myKaiju:FindFirstChildOfClass("Humanoid")
+	-- Health check: don't farm with dead kaiju (B3)
+	if not myKaiju or not myHRP or not myHum or myHum.Health <= 0 then
+		ReleaseSkyPlatform()
+		return
+	end
 	local isl = NearestIsland(myHRP.Position)
 	if not isl then return end
 	local skyTop = Vector3.new(isl.Pos.X, isl.Pos.Y + (Config.Farm.SkyAlt or 150), isl.Pos.Z)
-	EnsureSkyPlatform(skyTop)
+	AcquireSkyPlatform(skyTop)
 	-- Si te tumban o caes, te devuelve arriba (mirando al objetivo)
 	if myHRP.Position.Y < skyTop.Y - 25 then
 		local face = CurrentFarmTarget()
@@ -907,7 +1623,11 @@ local function AutoFarmTick()
 		if en >= cost then
 			FireSkill(skill)
 			State.NextBeamAt = now + cd
-			Notify(skill .. " disparado (próximo en " .. math.floor(cd) .. "s)", 3)
+			-- Throttle notify to avoid spam (B16)
+			if not State.LastBeamNotify or (now - State.LastBeamNotify) > 10 then
+				State.LastBeamNotify = now
+				Notify(skill .. " disparado (próximo en " .. math.floor(cd) .. "s)", 3)
+			end
 		else
 			State.NextBeamAt = now + 2
 		end
@@ -950,7 +1670,7 @@ local function BeamAltoTick()
 		if isl then
 			local skyTop = Vector3.new(isl.Pos.X, isl.Pos.Y + (Config.Farm.SkyAlt or 70), isl.Pos.Z)
 			State.AltoTop = skyTop
-			EnsureSkyPlatform(skyTop)
+			AcquireSkyPlatform(skyTop)
 			pcall(function()
 				myHRP.CFrame = CFrame.new(Vector3.new(skyTop.X, skyTop.Y + 4, skyTop.Z))
 			end)
@@ -987,6 +1707,7 @@ local function BeamAltoTick()
 		State.BeamAltoReturn = nil
 		State.AltoTop = nil
 		State.BeamAltoEndAt = nil
+		ReleaseSkyPlatform()
 	end
 	State.BeamAltoPrev = firing
 end
@@ -1044,7 +1765,8 @@ local function SilentGated()
 end
 
 local function InstallSilentHooks()
-	if State.IndexOld or State.NamecallOld then return true end
+	-- Allow installing missing hooks if only one was installed (B10)
+	if State.IndexOld and State.NamecallOld then return true end
 	if typeof(hookmetamethod) ~= "function" or typeof(newcclosure) ~= "function" then
 		warn("[Silent] Sin hookmetamethod/newcclosure")
 		return false
@@ -1052,48 +1774,52 @@ local function InstallSilentHooks()
 	pcall(function()
 		State.SilentMouse = LocalPlayer:GetMouse()
 	end)
-	pcall(function()
-		State.IndexOld = hookmetamethod(game, "__index", newcclosure(function(self, k)
-			if (k == "Hit" or k == "Target") and self == State.SilentMouse and SilentGated() then
-				local isExec = false
-				pcall(function() isExec = checkcaller() end)
-				if not isExec then
-					local target = GetSilentTarget()
-					local pos = target and SilentPoint(target)
-					if pos then
-						if k == "Hit" then return CFrame.new(pos) end
-						return SilentTargetObj(target)
-					end
-				end
-			end
-			return State.IndexOld(self, k)
-		end))
-	end)
-	pcall(function()
-		State.NamecallOld = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
-			local method = getnamecallmethod()
-			if method == "Raycast" and self == Workspace and SilentGated() then
-				local isExec = false
-				pcall(function() isExec = checkcaller() end)
-				if not isExec then
-					local args = { ... }
-					local origin, dir = args[1], args[2]
-					if typeof(origin) == "Vector3" and typeof(dir) == "Vector3" and dir.Magnitude > 100 then
+	if not State.IndexOld then
+		pcall(function()
+			State.IndexOld = hookmetamethod(game, "__index", newcclosure(function(self, k)
+				if (k == "Hit" or k == "Target") and self == State.SilentMouse and SilentGated() then
+					local isExec = false
+					pcall(function() isExec = checkcaller() end)
+					if not isExec then
 						local target = GetSilentTarget()
 						local pos = target and SilentPoint(target)
 						if pos then
-							local toT = pos - origin
-							if toT.Magnitude <= dir.Magnitude + 100 then
-								args[2] = toT.Unit * dir.Magnitude
-								return State.NamecallOld(self, unpack(args))
+							if k == "Hit" then return CFrame.new(pos) end
+							return SilentTargetObj(target)
+						end
+					end
+				end
+				return State.IndexOld(self, k)
+			end))
+		end)
+	end
+	if not State.NamecallOld then
+		pcall(function()
+			State.NamecallOld = hookmetamethod(game, "__namecall", newcclosure(function(self, ...)
+				local method = getnamecallmethod()
+				if method == "Raycast" and self == Workspace and SilentGated() then
+					local isExec = false
+					pcall(function() isExec = checkcaller() end)
+					if not isExec then
+						local args = { ... }
+						local origin, dir = args[1], args[2]
+						if typeof(origin) == "Vector3" and typeof(dir) == "Vector3" and dir.Magnitude > 100 then
+							local target = GetSilentTarget()
+							local pos = target and SilentPoint(target)
+							if pos then
+								local toT = pos - origin
+								if toT.Magnitude <= dir.Magnitude + 100 then
+									args[2] = toT.Unit * dir.Magnitude
+									return State.NamecallOld(self, unpack(args))
+								end
 							end
 						end
 					end
 				end
-			end
-			return State.NamecallOld(self, ...)
-		end))
-	end)
+				return State.NamecallOld(self, ...)
+			end))
+		end)
+	end
 	local ok = (State.IndexOld ~= nil) or (State.NamecallOld ~= nil)
 	if ok then print("[Silent] Hooks instalados (Mouse + Raycast)") end
 	return ok
@@ -1180,7 +1906,9 @@ local function KillTick()
 	State.LastKillTick = now
 	local myKaiju = GetMyKaiju()
 	local myHRP = myKaiju and myKaiju:FindFirstChild("HumanoidRootPart")
-	if not myKaiju or not myHRP then return end
+	local myHum = myKaiju and myKaiju:FindFirstChildOfClass("Humanoid")
+	-- Health check: don't kill with dead kaiju (B5)
+	if not myKaiju or not myHRP or not myHum or myHum.Health <= 0 then return end
 	local target = PickKillTarget()
 	if not target then return end
 	local tHRP = target:FindFirstChild("HumanoidRootPart")
@@ -1750,7 +2478,7 @@ local function OnBossHitbox(part)
 			sz = math.max(part.Size.X, part.Size.Y, part.Size.Z)
 		end)
 		local top = orig.Position + Vector3.new(0, math.max(60, sz / 2 + 40), 0)
-		EnsureSkyPlatform(top)
+		AcquireSkyPlatform(top)
 		pcall(function()
 			myHRP.CFrame = CFrame.new(Vector3.new(top.X, top.Y + 4, top.Z))
 		end)
@@ -1764,6 +2492,7 @@ local function OnBossHitbox(part)
 		pcall(function()
 			if myHRP.Parent and not State.Unloaded then myHRP.CFrame = orig end
 		end)
+		ReleaseSkyPlatform()
 		State.BossDodging = false
 	end)
 end
@@ -1876,6 +2605,138 @@ local function BossFarmTick()
 	end
 end
 
+-- ================= QUEST FARM TICK =================
+local function QuestFarmTick()
+	if not Config.QuestFarm or not Config.QuestFarm.Enabled or State.Unloaded then return end
+	local now = os.clock()
+	if (now - (State.QuestLastCheck or 0)) < 2 then return end
+	State.QuestLastCheck = now
+	
+	-- Auto-claim completed quests
+	local available = GetAvailableQuests()
+	for _, aq in pairs(available) do
+		if aq.ReadyToClaim then
+			local ok = ClaimQuest(aq.Type, aq.Quest.Id)
+			if ok then
+				Notify("Claimed " .. aq.Type .. " quest: " .. aq.Quest.Info, 3)
+			end
+		end
+	end
+	
+	-- Select and track best quest
+	if Config.QuestFarm.AutoSelect then
+		local best = SelectBestQuest()
+		if best then
+			State.QuestCurrentId = best.Quest.Id
+			State.QuestCurrentType = best.Type
+			-- Track progress for stuck detection
+			local prog = best.Quest.Goal > 0 and (best.Quest.Progress / best.Quest.Goal) or 0
+			if prog <= (State.QuestLastProgress or 0) + 0.001 then
+				State.QuestStuckCount = (State.QuestStuckCount or 0) + 1
+			else
+				State.QuestStuckCount = 0
+			end
+			State.QuestLastProgress = prog
+			
+			-- If stuck for too long, try next quest (degrade)
+			if State.QuestStuckCount > 5 and Config.QuestFarm.DegradeStuck then
+				State.QuestStuckCount = 0
+				-- Could implement quest skip logic here
+			end
+		else
+			State.QuestCurrentId = nil
+			State.QuestCurrentType = nil
+		end
+	end
+end
+
+-- ================= FARM KAIJU TICK =================
+local function FarmKaijuTick()
+	if not Config.FarmKaijus or not Config.FarmKaijus.Enabled or State.Unloaded then return end
+	if not Config.FarmKaijus.Target or Config.FarmKaijus.Target == "" then return end
+	
+	local now = os.clock()
+	if (now - (State.FarmKaijuLastAction or 0)) < 3 then return end
+	
+	local stages = GetFarmKaijuStages(Config.FarmKaijus.Target)
+	if #stages == 0 then
+		Config.FarmKaijus.Enabled = false
+		Notify("FarmKaijus: No stages for " .. Config.FarmKaijus.Target, 3)
+		return
+	end
+	
+	-- Find current stage
+	local currentStage = nil
+	for i, stage in ipairs(stages) do
+		local met, msg = stage.Check()
+		if not met then
+			currentStage = stage
+			State.FarmKaijuStage = i
+			break
+		end
+	end
+	
+	if not currentStage then
+		-- All stages complete!
+		Config.FarmKaijus.Enabled = false
+		Notify("FarmKaijus: " .. Config.FarmKaijus.Target .. " acquired!", 5)
+		return
+	end
+	
+	-- Execute current stage action
+	if currentStage.Type == "Requirement" then
+		-- For requirements, we need to farm the prerequisite kaiju
+		-- This could trigger auto-farm or quest farm for the req kaiju
+		local reqName = currentStage.Name
+		local reqData = currentStage.Data
+		local met, msg = currentStage.Check()
+		if not met then
+			-- Update progress label
+			if Config.FarmKaijus.ProgressLabel then
+				Config.FarmKaijus.ProgressLabel:SetText("Progress: Farming " .. reqName .. " (" .. msg .. ")")
+			end
+			if Config.FarmKaijus.ReqLabel then
+				Config.FarmKaijus.ReqLabel:SetText("Current Requirement: " .. reqName .. " - " .. msg)
+			end
+			if Config.FarmKaijus.StatusLabel then
+				Config.FarmKaijus.StatusLabel:SetText("Status: Working on requirement")
+			end
+			
+			-- Auto-enable quest farm for requirement if not already
+			if Config.QuestFarm and not Config.QuestFarm.Enabled then
+				Config.QuestFarm.Enabled = true
+				Config.QuestFarm.AutoSelect = true
+				Notify("Auto-enabling Quest Farm for " .. reqName, 3)
+			end
+		end
+	elseif currentStage.Type == "Purchase" then
+		-- Purchase the target kaiju
+		if Config.FarmKaijus.ProgressLabel then
+			Config.FarmKaijus.ProgressLabel:SetText("Progress: Purchasing " .. currentStage.Name .. "...")
+		end
+		if Config.FarmKaijus.ReqLabel then
+			Config.FarmKaijus.ReqLabel:SetText("Current Requirement: Purchase " .. currentStage.Name)
+		end
+		if Config.FarmKaijus.StatusLabel then
+			Config.FarmKaijus.StatusLabel:SetText("Status: Buying...")
+		end
+		
+		local ok, msg = PurchaseKaiju(currentStage.Name)
+		if ok then
+			Notify("Purchased " .. currentStage.Name .. "!", 5)
+			State.FarmKaijuErrorCount = 0
+		else
+			State.FarmKaijuErrorCount = (State.FarmKaijuErrorCount or 0) + 1
+			Notify("Purchase failed: " .. msg, 3)
+			if State.FarmKaijuErrorCount > 3 then
+				Config.FarmKaijus.Enabled = false
+				Notify("FarmKaijus: Too many purchase errors, stopping", 3)
+			end
+		end
+		State.FarmKaijuLastAction = now
+	end
+end
+
 -- ================= MAIN LOOP =================
 local function OnRenderStep()
 	if State.Unloaded then return end
@@ -1907,6 +2768,13 @@ local function OnRenderStep()
 	if Config.Farm.BeamAlto then
 		pcall(BeamAltoTick)
 	end
+	-- New systems
+	if Config.QuestFarm and Config.QuestFarm.Enabled then
+		pcall(QuestFarmTick)
+	end
+	if Config.FarmKaijus and Config.FarmKaijus.Enabled then
+		pcall(FarmKaijuTick)
+	end
 end
 
 -- ================= CLEANUP =================
@@ -1917,6 +2785,8 @@ local function Cleanup()
 	pcall(RestoreMovement)
 	pcall(RemoveSilentHooks)
 	pcall(StopBossFarm)
+	-- Force destroy platform on unload (bypass refcount)
+	State.SkyPlatformUsers = 0
 	pcall(DestroySkyPlatform)
 	for _, conn in ipairs(State.Connections) do
 		pcall(function() conn:Disconnect() end)
@@ -1942,255 +2812,73 @@ local Window = Library:CreateWindow({
 	AutoShow = true,
 })
 
--- AIM TAB
-local AimTab = Window:AddTab("Aim")
-local AimGroup = AimTab:AddLeftGroupbox("FOV Circle")
-AimGroup:AddToggle("AimShowFOV", { Text = "Show FOV", Default = Config.Aim.ShowFOV, Callback = function(v) Config.Aim.ShowFOV = v end })
-AimGroup:AddSlider("AimFOV", { Text = "FOV Radius", Default = Config.Aim.FOV, Min = 20, Max = 600, Rounding = 0, Callback = function(v) Config.Aim.FOV = v end })
-AimGroup:AddLabel("FOV Color"):AddColorPicker("AimFOVColor", { Default = Config.Aim.FOVColor, Title = "FOV Color", Callback = function(v) Config.Aim.FOVColor = v end })
-AimGroup:AddDropdown("AimTargetPart", { Text = "Target Part", Values = { "HumanoidRootPart", "Head", "Torso", "UpperTorso", "LowerTorso" }, Default = 1, Callback = function(v) Config.Aim.TargetPart = v end })
+-- ================= PLAYER TAB =================
+local PlayerTab = Window:AddTab("Player")
 
-local SilentGroup = AimTab:AddRightGroupbox("Silent Aimbot")
-SilentGroup:AddToggle("SilentEnabled", { Text = "Silent Enabled", Default = false, Callback = function(v)
-	Config.SilentAim.Enabled = v
-	if v then
-		if InstallSilentHooks() then Notify("Silent ON: dispara cerca del enemigo", 3)
-		else
-			Notify("No se pudo instalar (ver consola)", 3)
-			Config.SilentAim.Enabled = false
-			pcall(function() local t = Tgl("SilentEnabled") if t then t:SetValue(false) end end)
-		end
-	end
-	SyncFOV()
-end })
-SilentGroup:AddToggle("SilentOnlyAttack", { Text = "Solo mientras ataco", Default = true, Callback = function(v) Config.SilentAim.OnlyWhileAttacking = v end })
-SilentGroup:AddSlider("SilentRange", { Text = "Rango máximo", Default = 1500, Min = 100, Max = 5000, Rounding = 0, Callback = function(v) Config.SilentAim.Range = v end })
-SilentGroup:AddDropdown("SilentPart", { Text = "Parte objetivo", Values = { "HumanoidRootPart", "Head", "Torso", "UpperTorso", "LowerTorso" }, Default = 1, Callback = function(v) Config.SilentAim.TargetPart = v end })
-SilentGroup:AddLabel("Tu mira NO se mueve. Apunta\ncon el mouse cerca del\nenemigo (dentro del círculo)\ny el tiro va a él. Siempre.", true)
-
--- ESP TAB
-local ESPTab = Window:AddTab("ESP")
-local ESPMain = ESPTab:AddLeftGroupbox("Main")
-local ESPVis = ESPTab:AddRightGroupbox("Visuals")
-ESPMain:AddToggle("ESPEnabled", { Text = "Enabled", Default = false, Callback = function(v)
-	Config.ESP.Enabled = v
-	if not v then ClearAllESP() else UpdateESP() end
-end })
-ESPMain:AddToggle("ESPTeamCheck", { Text = "Team Check", Default = true, Callback = function(v) Config.ESP.TeamCheck = v end })
-ESPMain:AddSlider("ESPMaxDist", { Text = "Max Distance", Default = 5000, Min = 100, Max = 10000, Rounding = 0, Callback = function(v) Config.ESP.MaxDistance = v end })
-ESPMain:AddSlider("ESPTextSize", { Text = "Text Size", Default = 14, Min = 10, Max = 24, Rounding = 0, Callback = function(v) Config.ESP.TextSize = v end })
-ESPMain:AddButton({ Text = "Refresh ESP", Func = function() ClearAllESP() UpdateESP() end })
-ESPVis:AddToggle("ESPName", { Text = "Show Name", Default = true, Callback = function(v) Config.ESP.ShowName = v end })
-ESPVis:AddToggle("ESPHealth", { Text = "Show Health", Default = true, Callback = function(v) Config.ESP.ShowHealth = v end })
-ESPVis:AddToggle("ESPDist", { Text = "Show Distance", Default = true, Callback = function(v) Config.ESP.ShowDistance = v end })
-ESPVis:AddToggle("ESPChams", { Text = "Show Chams", Default = true, Callback = function(v) Config.ESP.ShowChams = v end })
-ESPVis:AddSlider("ESPFill", { Text = "Chams Fill Transparency", Default = 0.5, Min = 0, Max = 1, Rounding = 2, Callback = function(v) Config.ESP.ChamsFillTransparency = v end })
-ESPVis:AddSlider("ESPOutline", { Text = "Chams Outline Transparency", Default = 0, Min = 0, Max = 1, Rounding = 2, Callback = function(v) Config.ESP.ChamsOutlineTransparency = v end })
-
--- FARM TAB (Beam a todo)
-local FarmTab = Window:AddTab("Farm")
-local FarmBuilds = FarmTab:AddLeftGroupbox("Beam Builds")
-FarmBuilds:AddToggle("FarmBuilds", { Text = "Beam a edificios", Default = false, Callback = function(v)
-	Config.Farm.Builds = v
-	if v then
-		if InstallSilentHooks() then
-			State.LastFarmRefresh = 0
-			Notify("Farm builds ON: mantén tu beam (tecla 5)", 4)
-		else
-			Config.Farm.Builds = false
-			pcall(function() local t = Tgl("FarmBuilds") if t then t:SetValue(false) end end)
-			Notify("No se instalaron los hooks", 3)
-		end
-	end
-end })
-FarmBuilds:AddSlider("FarmBuildRange", { Text = "Rango edificios", Default = 1500, Min = 500, Max = 8000, Rounding = 0, Callback = function(v) Config.Farm.BuildRange = v end })
-FarmBuilds:AddToggle("FarmWall", { Text = "Wallcheck (edificios y players)", Default = true, Callback = function(v) Config.Farm.Wallcheck = v end })
-FarmBuilds:AddLabel("Rotación máxima: cambia de\nobjetivo cada frame. Solo\nactiva y mantén el beam.", true)
-local FarmPlayers = FarmTab:AddRightGroupbox("Beam Players")
-FarmPlayers:AddToggle("FarmPlayers", { Text = "Beam a jugadores (rotando)", Default = false, Callback = function(v)
-	Config.Farm.Players = v
-	if v then
-		if InstallSilentHooks() then
-			State.LastFarmRefresh = 0
-			Notify("Farm players ON: rango y FOV infinitos, cambio insta", 4)
-		else
-			Config.Farm.Players = false
-			pcall(function() local t = Tgl("FarmPlayers") if t then t:SetValue(false) end end)
-			Notify("No se instalaron los hooks", 3)
-		end
-	end
-end })
-FarmPlayers:AddLabel("Rota por los vivos en rango\nsaltando inmunes (IFrame) y\nmuros. Rota cada frame.", true)
-FarmPlayers:AddToggle("AutoFarm", { Text = "Auto farm (plataforma + spam beam)", Default = false, Callback = function(v)
-	Config.Farm.AutoFarm = v
-	if v then
-		InstallSilentHooks()
-		local cd, cost, skill = BeamCostCD()
-		Notify(string.format("Auto farm ON (usa %s: %ds CD, %d energía)", skill, math.floor(cd), math.floor(cost)), 4)
-	else
-		DestroySkyPlatform()
-	end
-end })
-FarmPlayers:AddToggle("BeamAlto", { Text = "Beam alto (te mantiene arriba, vuelve)", Default = false, Callback = function(v)
-	Config.Farm.BeamAlto = v
-	if v then Notify("Beam alto ON", 3) end
-end })
-FarmPlayers:AddSlider("SkyAlt", { Text = "Altura plataforma", Default = 70, Min = 30, Max = 150, Rounding = 0, Callback = function(v) Config.Farm.SkyAlt = v end })
-FarmPlayers:AddToggle("Efficient", { Text = "Beam eficiente (corta distancia)", Default = false, Callback = function(v)
-	Config.Farm.Efficient = v
-	State.LastFarmRefresh = 0
-end })
-FarmPlayers:AddSlider("EfficientRange", { Text = "Distancia eficiente", Default = 800, Min = 100, Max = 3000, Rounding = 0, Callback = function(v)
-	Config.Farm.EfficientRange = v
-	State.LastFarmRefresh = 0
-end })
-
-local RespawnGroup = FarmTab:AddLeftGroupbox("Respawn e Islas")
-RespawnGroup:AddToggle("RespawnAuto", { Text = "Ir a la isla al reaparecer", Default = false, Callback = function(v)
-	Config.Respawn.Auto = v
-	if v then Notify("Al morir vuelves a " .. Config.Respawn.Island, 4) end
-end })
-RespawnGroup:AddDropdown("RespawnIsland", { Text = "Isla al reaparecer", Values = { "Actual", "Tokyo", "Desert", "Antarctica", "Skull Island", "Safezone" }, Default = 2, Callback = function(v) Config.Respawn.Island = v end })
-RespawnGroup:AddDropdown("GoIsland", { Text = "Ir a isla ahora", Values = { "Tokyo", "Desert", "Antarctica", "Skull Island", "Safezone" }, Default = 1, Callback = function(v)
-	if TeleportIsland(v) then Notify("Teletransporte a " .. v, 3) end
-end })
-RespawnGroup:AddLabel("Si mueres y el juego te\nre-spawnea solo, te lleva a\nla isla elegida. Si pide Play,\npúlsalo manual.", true)
-RespawnGroup:AddButton({ Text = "SUICIDIO (morir ya, aun en combate)", Func = function()
-	pcall(function()
-		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-		local cr = remotes and remotes:FindFirstChild("CombatRemote")
-		if cr then cr:FireServer("Death") end
-	end)
-	Notify("Muerte forzada enviada", 3)
-end })
-
-local KillGroup = FarmTab:AddRightGroupbox("Auto Kill Players")
-KillGroup:AddToggle("KillEnabled", { Text = "Auto kill players", Default = false, Callback = function(v)
-	Config.Kill.Enabled = v
-	if v then
-		State.KillCurrent = nil
-		Notify("Auto kill ON: se pega y spamea", 4)
-	end
-end })
-local KillTargetsDrop = KillGroup:AddDropdown("KillTargets", { Text = "Jugadores objetivo (vacío = todos)", Values = AllPlayerNames(), Default = {}, Multi = true, Callback = function(v)
-	Config.Kill.Targets = NormSet(v)
-end })
-local KillExcludeDrop = KillGroup:AddDropdown("KillExclude", { Text = "Excluir jugadores", Values = AllPlayerNames(), Default = {}, Multi = true, Callback = function(v)
-	Config.Kill.Exclude = NormSet(v)
-end })
-KillGroup:AddDropdown("KillAttacks", { Text = "Ataques a spamear", Values = { "Attack1", "Attack2", "Attack3", "Attack4", "Attack5" }, Default = { "Attack1" }, Multi = true, Callback = function(v)
-	local map = NormSet(v)
-	if next(map) then Config.Kill.Attacks = map end
-end })
-KillGroup:AddSlider("KillStick", { Text = "Distancia a pegarse", Default = 12, Min = 6, Max = 30, Rounding = 0, Callback = function(v) Config.Kill.StickDist = v end })
-KillGroup:AddDropdown("KillPos", { Text = "Posición (misma altura + mirada forzada)", Values = { "Enfrente", "Arriba", "Abajo", "Atrás" }, Default = 1, Callback = function(v) Config.Kill.PosMode = v end })
-KillGroup:AddSlider("KillSwitch", { Text = "Cambiar objetivo cada (s)", Default = 8, Min = 3, Max = 30, Rounding = 0, Callback = function(v) Config.Kill.SwitchTime = v end })
-KillGroup:AddSlider("KillInterval", { Text = "Intervalo ataques (s)", Default = 1.2, Min = 0.5, Max = 3, Rounding = 2, Callback = function(v) Config.Kill.Interval = v end })
-KillGroup:AddButton({ Text = "Actualizar lista de jugadores", Func = function()
-	local names = AllPlayerNames()
-	pcall(function() KillTargetsDrop:Refresh(names) end)
-	pcall(function() KillExcludeDrop:Refresh(names) end)
-	Notify("Lista actualizada (" .. tostring(#names) .. ")", 3)
-end })
-
--- BOSS TAB (monitor en vivo + zona de espera)
-local BossTab = Window:AddTab("Boss")
-local BossGroup = BossTab:AddLeftGroupbox("Shin Eva Godzilla")
-State.BossTimerLbl = BossGroup:AddLabel("Falta: --:--", true)
-State.BossPlayersLbl = BossGroup:AddLabel("En zona: --/--", true)
-State.BossStateLbl = BossGroup:AddLabel("Vida del jefe: --", true)
-State.BossDmgLbl = BossGroup:AddLabel("Daño causado: --", true)
-BossGroup:AddButton({ Text = "Ir a zona boss (portal)", Func = function() GoBossPortal() end })
-
-local BossFarmGroup = BossTab:AddRightGroupbox("Auto Farm")
-BossFarmGroup:AddToggle("BossFarmOn", { Text = "Auto farm jefe", Default = false, Callback = function(v)
-	Config.BossFarm.Enabled = v
-	if v then
-		StartBossFarm()
-		InstallSilentHooks()
-		Notify("Boss farm ON: pegado + evade + respawn + beams al jefe", 4)
-	else
-		StopBossFarm()
-	end
-end })
-BossFarmGroup:AddToggle("BossDodge", { Text = "Evasor de habilidades", Default = true, Callback = function(v) Config.BossFarm.Dodge = v end })
-BossFarmGroup:AddSlider("BossStick", { Text = "Distancia pegado", Default = 12, Min = 6, Max = 30, Rounding = 0, Callback = function(v)
-	Config.BossFarm.StickDist = v
-	UnweldBoss()
-end })
-BossFarmGroup:AddDropdown("BossAttacks", { Text = "Habilidades a usar", Values = { "Attack1", "Attack2", "Attack3", "Attack4", "Attack5" }, Default = { "Attack1" }, Multi = true, Callback = function(v)
-	local map = NormSet(v)
-	if next(map) then Config.BossFarm.Attacks = map end
-end })
-BossFarmGroup:AddToggle("BossAutoRespawn", { Text = "Auto respawn al jefe", Default = true, Callback = function(v) Config.BossFarm.AutoRespawn = v end })
-BossFarmGroup:AddLabel("Soldado DETRÁS del jefe: viajas\npegado sin saltos. Rota tus\nskills por cooldown real.\nEsquiva subiendo +100.", true)
-
--- MISC TAB (Votekick auto)
-local MiscTab = Window:AddTab("Misc")
-local VoteGroup = MiscTab:AddLeftGroupbox("Votekick automático")
-VoteGroup:AddToggle("VoteAll", { Text = "Votar a todos (respeta exclusiones)", Default = false, Callback = function(v)
-	Config.Vote.AutoAll = v
-	if v then Notify("Votekick auto ON", 3) end
-end })
-VoteGroup:AddToggle("VoteYes", { Text = "Votar SÍ automático", Default = true, Callback = function(v) Config.Vote.AutoYes = v end })
-local VoteFocusDrop = VoteGroup:AddDropdown("VoteSolo", { Text = "Solo seleccionados (vacío = todos)", Values = AllPlayerNames(), Default = {}, Multi = true, Callback = function(v)
-	Config.Vote.Solo = NormSet(v)
-end })
-local VoteExcludeDrop = VoteGroup:AddDropdown("VoteExclude", { Text = "Excluir jugadores", Values = AllPlayerNames(), Default = {}, Multi = true, Callback = function(v)
-	Config.Vote.Exclude = NormSet(v)
-end })
-State.VoteExcludeDrop = VoteExcludeDrop
-VoteGroup:AddToggle("VoteAutoFriends", { Text = "Excluir amigos automático", Default = false, Callback = function(v)
-	Config.Vote.AutoFriends = v
-	if v then
-		local n = ExcludeFriends()
-		State.LastFriendScan = os.clock()
-		SyncExcludeDrop()
-		Notify(n > 0 and (n .. " amigos excluidos (auto cada 30s)") or "Sin amigos en el server (vigilando)", 4)
-	end
-end })
-VoteGroup:AddButton({ Text = "Actualizar listas", Func = function()
-	local names = AllPlayerNames()
-	pcall(function() VoteFocusDrop:Refresh(names) end)
-	pcall(function() VoteExcludeDrop:Refresh(names) end)
-	Notify("Listas actualizadas (" .. tostring(#names) .. ")", 3)
-end })
-VoteGroup:AddLabel("Probado: las 10 votaciones\nconviven. Se abren de a 1/s.\nExcluidos: abstención total.", true)
-
--- MOVEMENT TAB
-local MovementTab = Window:AddTab("Movement")
-local MoveGroup = MovementTab:AddLeftGroupbox("Speed (SpeedMulti)")
-MoveGroup:AddToggle("MoveEnabled", { Text = "Speed Enabled", Default = false, Callback = function(v)
+-- Movement (left)
+local MoveGroup = PlayerTab:AddLeftGroupbox("Movement")
+MoveGroup:AddToggle("MoveEnabled", { Text = L("Lbl_MoveEnabled"), Default = false, Callback = function(v)
 	Config.Movement.Enabled = v
 	if not v then RestoreMovement() else
 		local m = GetMyKaiju(false)
 		if m then CaptureMoveBase(m) end
 	end
 end })
-MoveGroup:AddSlider("MoveSprint", { Text = "Sprint Increase (%) [máx 50]", Default = 0, Min = 0, Max = 50, Rounding = 0, Callback = function(v) Config.Movement.SprintSpeedPercent = v end })
-MoveGroup:AddSlider("MoveWalk", { Text = "Walk Increase (%) [máx 50]", Default = 0, Min = 0, Max = 50, Rounding = 0, Callback = function(v) Config.Movement.WalkSpeedPercent = v end })
-MoveGroup:AddButton({ Text = "Reset Speed (forzar normal)", Func = function()
+-- Capture slider references for ResetMovementState (PealLib sliders don't populate Options table)
+MoveSprintSlider = MoveGroup:AddSlider("MoveSprint", { Text = L("Lbl_MoveSprint"), Default = 0, Min = 0, Max = 50, Rounding = 0, Callback = function(v) Config.Movement.SprintSpeedPercent = v end })
+MoveWalkSlider = MoveGroup:AddSlider("MoveWalk", { Text = L("Lbl_MoveWalk"), Default = 0, Min = 0, Max = 50, Rounding = 0, Callback = function(v) Config.Movement.WalkSpeedPercent = v end })
+MoveGroup:AddButton({ Text = L("Lbl_MoveReset"), Func = function()
 	ResetMovementState()
-	Notify("Velocidad restaurada (SpeedMulti=base, sin tocar WalkSpeed)", 3)
+	Notify(L("Msg_MoveReset"), 3)
 end })
-MoveGroup:AddLabel("0% = normal, 50% = 1.5x (tope del Anti).\nSolo SpeedMulti: nunca toca WalkSpeed.", true)
+MoveGroup:AddLabel(L("Lbl_MoveNote"), true)
 
--- SETTINGS + SERVER
-local SettingsTab = Window:AddTab("Settings")
-local UISettings = SettingsTab:AddLeftGroupbox("UI")
-UISettings:AddButton({ Text = "Unload Hub", Func = function() FullUnload() end })
-local autoDefault = false
-pcall(function() autoDefault = readfile("KaijuHub/autoload.txt") == "1" end)
-UISettings:AddToggle("AutoLoadScript", { Text = "Autoload del script al inyectar", Default = autoDefault, Callback = function(v)
-	local ok = pcall(writefile, "KaijuHub/autoload.txt", v and "1" or "0")
-	Notify(ok and (v and "Autoload ACTIVADO" or "Autoload apagado") or "Sin acceso a archivos", 3)
+-- Spawn (left)
+local SpawnGroup = PlayerTab:AddLeftGroupbox("Spawn")
+SpawnGroup:AddToggle("RespawnAuto", { Text = L("Lbl_RespawnAuto"), Default = false, Callback = function(v)
+	Config.Respawn.Auto = v
+	if v then Notify(string.format(L("Msg_RespawnSet"), Config.Respawn.Island), 4) end
 end })
-UISettings:AddLabel("Menu Keybind"):AddKeyPicker("MenuKeybind", { Default = "RightControl", NoUI = true, Text = "Menu keybind" })
-Library.ToggleKeybind = Options.MenuKeybind
+SpawnGroup:AddDropdown("RespawnIsland", { Text = L("Lbl_RespawnIsland"), Values = { "Actual", "Tokyo", "Desert", "Antarctica", "Skull Island", "Safezone" }, Default = 2, Callback = function(v) Config.Respawn.Island = v end })
+SpawnGroup:AddDropdown("GoIsland", { Text = L("Lbl_GoIsland"), Values = { "Tokyo", "Desert", "Antarctica", "Skull Island", "Safezone" }, Default = 1, Callback = function(v)
+	if TeleportIsland(v) then Notify(string.format(L("Msg_TeleportIsland"), v), 3) end
+end })
+SpawnGroup:AddButton({ Text = L("Lbl_Suicide"), Func = function()
+	pcall(function()
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		local cr = remotes and remotes:FindFirstChild("CombatRemote")
+		if cr then cr:FireServer("Death") end
+	end)
+	Notify(L("Msg_SuicideSent"), 3)
+end })
+SpawnGroup:AddLabel(L("Lbl_RespawnNote"), true)
 
-local ServerGroup = SettingsTab:AddRightGroupbox("Server")
-ServerGroup:AddButton({ Text = "Rejoin Current Server", Func = function()
-	Notify("Rejoining...", 3)
+-- Silent Aimbot (right) incl FOV
+local SilentGroup = PlayerTab:AddRightGroupbox("Silent Aimbot")
+SilentGroup:AddToggle("SilentEnabled", { Text = L("Lbl_SilentEnabled"), Default = false, Callback = function(v)
+	Config.SilentAim.Enabled = v
+	if v then
+		if InstallSilentHooks() then Notify(L("Msg_SilentOn"), 3)
+		else
+			Notify(L("Msg_SilentFail"), 3)
+			Config.SilentAim.Enabled = false
+			pcall(function() local t = Tgl("SilentEnabled") if t then t:SetValue(false) end end)
+		end
+	end
+	SyncFOV()
+end })
+SilentGroup:AddToggle("SilentOnlyAttack", { Text = L("Lbl_SilentOnlyAttack"), Default = true, Callback = function(v) Config.SilentAim.OnlyWhileAttacking = v end })
+SilentGroup:AddSlider("SilentRange", { Text = L("Lbl_SilentRange"), Default = 1500, Min = 100, Max = 5000, Rounding = 0, Callback = function(v) Config.SilentAim.Range = v end })
+SilentGroup:AddDropdown("SilentPart", { Text = L("Lbl_SilentPart"), Values = { "HumanoidRootPart", "Head", "Torso", "UpperTorso", "LowerTorso" }, Default = 1, Callback = function(v) Config.SilentAim.TargetPart = v end })
+SilentGroup:AddToggle("AimShowFOV", { Text = L("Lbl_ShowFOV"), Default = Config.Aim.ShowFOV, Callback = function(v) Config.Aim.ShowFOV = v end })
+SilentGroup:AddSlider("AimFOV", { Text = L("Lbl_FOVRadius"), Default = Config.Aim.FOV, Min = 20, Max = 600, Rounding = 0, Callback = function(v) Config.Aim.FOV = v end })
+SilentGroup:AddLabel(L("Lbl_FOVColor")):AddColorPicker("AimFOVColor", { Default = Config.Aim.FOVColor, Title = L("Lbl_FOVColor"), Callback = function(v) Config.Aim.FOVColor = v end })
+SilentGroup:AddLabel(L("Lbl_SilentNote"), true)
+
+-- Travel (right)
+local TravelGroup = PlayerTab:AddRightGroupbox("Travel")
+TravelGroup:AddButton({ Text = L("Lbl_Rejoin"), Func = function()
+	Notify(L("Msg_Rejoining"), 3)
 	TeleportService:Teleport(game.PlaceId, LocalPlayer)
 end })
 
@@ -2204,8 +2892,8 @@ local function FetchServers()
 	return nil
 end
 
-ServerGroup:AddButton({ Text = "Server Hop", Func = function()
-	Notify("Buscando servidor...", 3)
+TravelGroup:AddButton({ Text = L("Lbl_ServerHop"), Func = function()
+	Notify(L("Msg_SearchingServer"), 3)
 	local data = FetchServers()
 	local servers = {}
 	if data and data.data then
@@ -2218,12 +2906,12 @@ ServerGroup:AddButton({ Text = "Server Hop", Func = function()
 	if #servers > 0 then
 		TeleportService:TeleportToPlaceInstance(game.PlaceId, servers[math.random(1, #servers)], LocalPlayer)
 	else
-		Notify("No se encontraron servidores", 3)
+		Notify(L("Msg_NoServers"), 3)
 	end
 end })
 
-ServerGroup:AddButton({ Text = "Hop Low Population", Func = function()
-	Notify("Buscando servidor vacío...", 3)
+TravelGroup:AddButton({ Text = L("Lbl_HopLowPop"), Func = function()
+	Notify(L("Msg_SearchingEmpty"), 3)
 	local data = FetchServers()
 	local best, lowest = nil, math.huge
 	if data and data.data then
@@ -2236,8 +2924,346 @@ ServerGroup:AddButton({ Text = "Hop Low Population", Func = function()
 	if best then
 		TeleportService:TeleportToPlaceInstance(game.PlaceId, best, LocalPlayer)
 	else
-		Notify("No se encontraron servidores", 3)
+		Notify(L("Msg_NoServers"), 3)
 	end
+end })
+
+-- ================= ESP TAB =================
+local ESPTab = Window:AddTab("ESP")
+local ESPMain = ESPTab:AddLeftGroupbox(L("GB_ESPMain"))
+local ESPVis = ESPTab:AddRightGroupbox(L("GB_ESPVisuals"))
+ESPMain:AddToggle("ESPEnabled", { Text = L("Lbl_ESPEnabled"), Default = false, Callback = function(v)
+	Config.ESP.Enabled = v
+	if not v then ClearAllESP() else UpdateESP() end
+end })
+ESPMain:AddToggle("ESPTeamCheck", { Text = L("Lbl_ESPTeamCheck"), Default = true, Callback = function(v) Config.ESP.TeamCheck = v end })
+ESPMain:AddSlider("ESPMaxDist", { Text = L("Lbl_ESPMaxDist"), Default = 5000, Min = 100, Max = 10000, Rounding = 0, Callback = function(v) Config.ESP.MaxDistance = v end })
+ESPMain:AddSlider("ESPTextSize", { Text = L("Lbl_ESPTextSize"), Default = 14, Min = 10, Max = 24, Rounding = 0, Callback = function(v) Config.ESP.TextSize = v end })
+ESPMain:AddButton({ Text = L("Lbl_ESPRefresh"), Func = function() ClearAllESP() UpdateESP() end })
+ESPVis:AddToggle("ESPName", { Text = L("Lbl_ESPName"), Default = true, Callback = function(v) Config.ESP.ShowName = v end })
+ESPVis:AddToggle("ESPHealth", { Text = L("Lbl_ESPHealth"), Default = true, Callback = function(v) Config.ESP.ShowHealth = v end })
+ESPVis:AddToggle("ESPDist", { Text = L("Lbl_ESPDist"), Default = true, Callback = function(v) Config.ESP.ShowDistance = v end })
+ESPVis:AddToggle("ESPChams", { Text = L("Lbl_ESPChams"), Default = true, Callback = function(v) Config.ESP.ShowChams = v end })
+ESPVis:AddSlider("ESPFill", { Text = L("Lbl_ESPFill"), Default = 0.5, Min = 0, Max = 1, Rounding = 2, Callback = function(v) Config.ESP.ChamsFillTransparency = v end })
+ESPVis:AddSlider("ESPOutline", { Text = L("Lbl_ESPOutline"), Default = 0, Min = 0, Max = 1, Rounding = 2, Callback = function(v) Config.ESP.ChamsOutlineTransparency = v end })
+
+-- ================= FARM TAB =================
+local FarmTab = Window:AddTab("Farm")
+
+-- Boss (left) - monitor + autofarm
+local BossGroup = FarmTab:AddLeftGroupbox(L("GB_BossMonitor"))
+State.BossTimerLbl = BossGroup:AddLabel(L("Lbl_BossTimer"), true)
+State.BossPlayersLbl = BossGroup:AddLabel(L("Lbl_BossPlayers"), true)
+State.BossStateLbl = BossGroup:AddLabel(L("Lbl_BossState"), true)
+State.BossDmgLbl = BossGroup:AddLabel(L("Lbl_BossDmg"), true)
+BossGroup:AddButton({ Text = L("Lbl_GoBossPortal"), Func = function() GoBossPortal() end })
+
+local BossFarmGroup = FarmTab:AddRightGroupbox(L("GB_BossFarm"))
+BossFarmGroup:AddToggle("BossFarmOn", { Text = L("Lbl_BossFarmOn"), Default = false, Callback = function(v)
+	Config.BossFarm.Enabled = v
+	if v then
+		StartBossFarm()
+		InstallSilentHooks()
+		Notify("Boss farm ON: pegado + evade + respawn + beams al jefe", 4)
+	else
+		StopBossFarm()
+	end
+end })
+BossFarmGroup:AddToggle("BossDodge", { Text = L("Lbl_BossDodge"), Default = true, Callback = function(v) Config.BossFarm.Dodge = v end })
+BossFarmGroup:AddSlider("BossStick", { Text = L("Lbl_BossStick"), Default = 12, Min = 6, Max = 30, Rounding = 0, Callback = function(v)
+	Config.BossFarm.StickDist = v
+	UnweldBoss()
+end })
+BossFarmGroup:AddDropdown("BossAttacks", { Text = L("Lbl_BossAttacks"), Values = { "Attack1", "Attack2", "Attack3", "Attack4", "Attack5" }, Default = { "Attack1" }, Multi = true, Callback = function(v)
+	local map = NormSet(v)
+	Config.BossFarm.Attacks = map
+	if not next(map) then Config.BossFarm.Attacks = { Attack1 = true } end
+end })
+BossFarmGroup:AddToggle("BossAutoRespawn", { Text = L("Lbl_BossAutoRespawn"), Default = true, Callback = function(v) Config.BossFarm.AutoRespawn = v end })
+BossFarmGroup:AddLabel(L("Lbl_BossFarmNote"), true)
+
+-- Beam Farm (right) - preserved from old Farm tab
+local BeamFarmGroup = FarmTab:AddRightGroupbox("Beam Farm")
+BeamFarmGroup:AddToggle("FarmBuilds", { Text = L("Lbl_FarmBuilds"), Default = false, Callback = function(v)
+	Config.Farm.Builds = v
+	if v then
+		if InstallSilentHooks() then
+			State.LastFarmRefresh = 0
+			Notify(L("Msg_FarmBuildsOn"), 4)
+		else
+			Config.Farm.Builds = false
+			pcall(function() local t = Tgl("FarmBuilds") if t then t:SetValue(false) end end)
+			Notify(L("Msg_FarmBuildsFail"), 3)
+		end
+	end
+end })
+BeamFarmGroup:AddSlider("FarmBuildRange", { Text = L("Lbl_FarmBuildRange"), Default = 1500, Min = 500, Max = 8000, Rounding = 0, Callback = function(v) Config.Farm.BuildRange = v end })
+BeamFarmGroup:AddToggle("FarmWall", { Text = L("Lbl_FarmWallcheck"), Default = true, Callback = function(v) Config.Farm.Wallcheck = v end })
+BeamFarmGroup:AddLabel(L("Lbl_FarmNote"), true)
+BeamFarmGroup:AddToggle("FarmPlayers", { Text = L("Lbl_FarmPlayers"), Default = false, Callback = function(v)
+	Config.Farm.Players = v
+	if v then
+		if InstallSilentHooks() then
+			State.LastFarmRefresh = 0
+			Notify(L("Msg_FarmPlayersOn"), 4)
+		else
+			Config.Farm.Players = false
+			pcall(function() local t = Tgl("FarmPlayers") if t then t:SetValue(false) end end)
+			Notify(L("Msg_FarmPlayersFail"), 3)
+		end
+	end
+end })
+BeamFarmGroup:AddLabel(L("Lbl_FarmPlayersNote"), true)
+BeamFarmGroup:AddToggle("AutoFarm", { Text = L("Lbl_AutoFarm"), Default = false, Callback = function(v)
+	Config.Farm.AutoFarm = v
+	if v then
+		InstallSilentHooks()
+		-- Save position before farming for restore on disable (B4)
+		local myKaiju = GetMyKaiju()
+		local myHRP = myKaiju and myKaiju:FindFirstChild("HumanoidRootPart")
+		if myHRP then State.PreFarmPos = myHRP.CFrame end
+		local cd, cost, skill = BeamCostCD()
+		Notify(string.format(L("Msg_AutoFarmOn"), skill, math.floor(cd), math.floor(cost)), 4)
+	else
+		ReleaseSkyPlatform()
+		-- Restore position after farm disabled (B4)
+		task.delay(0.5, function()
+			if State.PreFarmPos and not State.Unloaded then
+				local mk = GetMyKaiju(false)
+				local hrp = mk and mk:FindFirstChild("HumanoidRootPart")
+				if hrp and hrp.Parent then
+					pcall(function() hrp.CFrame = State.PreFarmPos end)
+				end
+			end
+			State.PreFarmPos = nil
+		end)
+	end
+end })
+BeamFarmGroup:AddToggle("BeamAlto", { Text = L("Lbl_BeamAlto"), Default = false, Callback = function(v)
+	Config.Farm.BeamAlto = v
+	if v then Notify(L("Msg_BeamAltoOn"), 3) end
+end })
+BeamFarmGroup:AddSlider("SkyAlt", { Text = L("Lbl_SkyAlt"), Default = 70, Min = 30, Max = 150, Rounding = 0, Callback = function(v) Config.Farm.SkyAlt = v end })
+BeamFarmGroup:AddToggle("Efficient", { Text = L("Lbl_Efficient"), Default = false, Callback = function(v)
+	Config.Farm.Efficient = v
+	State.LastFarmRefresh = 0
+end })
+BeamFarmGroup:AddSlider("EfficientRange", { Text = L("Lbl_EfficientRange"), Default = 800, Min = 100, Max = 3000, Rounding = 0, Callback = function(v)
+	Config.Farm.EfficientRange = v
+	State.LastFarmRefresh = 0
+end })
+
+-- Quests (left) - Quest Farm System
+local QuestsGroup = FarmTab:AddLeftGroupbox("Quests")
+QuestsGroup:AddToggle("QuestFarmEnabled", { Text = "Auto Farm Quests", Default = false, Callback = function(v)
+	Config.QuestFarm.Enabled = v
+	if v then Notify("Quest Farm ON", 3) end
+end })
+QuestsGroup:AddToggle("QuestAutoSelect", { Text = "Auto Select Best Quest", Default = true, Callback = function(v) Config.QuestFarm.AutoSelect = v end })
+QuestsGroup:AddToggle("QuestDegradeStuck", { Text = "Degrade Stuck Quests", Default = true, Callback = function(v) Config.QuestFarm.DegradeStuck = v end })
+QuestsGroup:AddButton({ Text = "Refresh Quest List", Func = function() 
+	local available = GetAvailableQuests()
+	Notify("Found " .. #available .. " available quests", 3)
+	for _, aq in pairs(available) do
+		print(aq.Type .. ": " .. aq.Quest.Info .. " [" .. aq.Quest.Progress .. "/" .. aq.Quest.Goal .. "]")
+	end
+end })
+QuestsGroup:AddButton({ Text = "Claim All Completed", Func = function()
+	local available = GetAvailableQuests()
+	local claimed = 0
+	for _, aq in pairs(available) do
+		if aq.ReadyToClaim then
+			local ok = ClaimQuest(aq.Type, aq.Quest.Id)
+			if ok then claimed = claimed + 1 end
+		end
+	end
+	Notify("Claimed " .. claimed .. " quests", 3)
+end })
+QuestsGroup:AddLabel("Current: None", true)
+
+-- FarmKaijus (left) - Auto Kaiju Acquisition System
+local FarmKaijusGroup = FarmTab:AddLeftGroupbox("FarmKaijus")
+local kaijuNames = {}
+for name, _ in pairs(KAIJU_REQUIREMENTS) do table.insert(kaijuNames, name) end
+table.sort(kaijuNames)
+FarmKaijusGroup:AddDropdown("FarmKaijuTarget", { Text = "Target Kaiju", Values = kaijuNames, Default = 1, Callback = function(v) Config.FarmKaijus.Target = v end })
+FarmKaijusGroup:AddToggle("FarmKaijuEnabled", { Text = "Start/Stop", Default = false, Callback = function(v) 
+	Config.FarmKaijus.Enabled = v
+	if v then Notify("FarmKaijus: Started for " .. Config.FarmKaijus.Target, 3) end
+end })
+local progressLabel = FarmKaijusGroup:AddLabel("Progress: Idle", true)
+local reqLabel = FarmKaijusGroup:AddLabel("Current Requirement: None", true)
+local statusLabel = FarmKaijusGroup:AddLabel("Status: Idle", true)
+Config.FarmKaijus.ProgressLabel = progressLabel
+Config.FarmKaijus.ReqLabel = reqLabel
+Config.FarmKaijus.StatusLabel = statusLabel
+FarmKaijusGroup:AddButton({ Text = "Check Requirements", Func = function()
+	local req = GetKaijuRequirement(Config.FarmKaijus.Target)
+	local msg = "Requirements for " .. Config.FarmKaijus.Target .. ":\n"
+	if req.Price and req.Price > 0 then msg = msg .. "Price: " .. req.Price .. " Cells\n" end
+	for rname, rdata in pairs(req.Requirements) do
+		local met, detail = CheckRequirementMet(rname, rdata)
+		msg = msg .. (met and "✓ " or "✗ ") .. rname .. " - " .. detail .. "\n"
+	end
+	Notify(msg, 5)
+	print(msg)
+end })
+
+-- Auto Kill (right)
+local KillGroup = FarmTab:AddRightGroupbox(L("GB_AutoKill"))
+KillGroup:AddToggle("KillEnabled", { Text = L("Lbl_KillEnabled"), Default = false, Callback = function(v)
+	Config.Kill.Enabled = v
+	if v then
+		State.KillCurrent = nil
+		Notify(L("Msg_KillOn"), 4)
+	end
+end })
+local KillTargetsDrop = KillGroup:AddDropdown("KillTargets", { Text = L("Lbl_KillTargets"), Values = AllPlayerNames(), Default = {}, Multi = true, Callback = function(v)
+	Config.Kill.Targets = NormSet(v)
+end })
+local KillExcludeDrop = KillGroup:AddDropdown("KillExclude", { Text = L("Lbl_KillExclude"), Values = AllPlayerNames(), Default = {}, Multi = true, Callback = function(v)
+	Config.Kill.Exclude = NormSet(v)
+end })
+KillGroup:AddDropdown("KillAttacks", { Text = L("Lbl_KillAttacks"), Values = { "Attack1", "Attack2", "Attack3", "Attack4", "Attack5" }, Default = { "Attack1" }, Multi = true, Callback = function(v)
+	local map = NormSet(v)
+	Config.Kill.Attacks = map
+	if not next(map) then Config.Kill.Attacks = { Attack1 = true } end
+end })
+KillGroup:AddSlider("KillStick", { Text = L("Lbl_KillStick"), Default = 12, Min = 6, Max = 30, Rounding = 0, Callback = function(v) Config.Kill.StickDist = v end })
+KillGroup:AddDropdown("KillPos", { Text = L("Lbl_KillPos"), Values = { "Enfrente", "Arriba", "Abajo", "Atrás" }, Default = 1, Callback = function(v) Config.Kill.PosMode = v end })
+KillGroup:AddSlider("KillSwitch", { Text = L("Lbl_KillSwitch"), Default = 8, Min = 3, Max = 30, Rounding = 0, Callback = function(v) Config.Kill.SwitchTime = v end })
+KillGroup:AddSlider("KillInterval", { Text = L("Lbl_KillInterval"), Default = 1.2, Min = 0.5, Max = 3, Rounding = 2, Callback = function(v) Config.Kill.Interval = v end })
+KillGroup:AddButton({ Text = L("Lbl_KillRefresh"), Func = function()
+	local names = AllPlayerNames()
+	pcall(function() KillTargetsDrop:Refresh(names) end)
+	pcall(function() KillExcludeDrop:Refresh(names) end)
+	Notify(string.format(L("Msg_KillRefresh"), #names), 3)
+end })
+
+-- ================= MISC TAB =================
+local MiscTab = Window:AddTab("Misc")
+
+-- My Kaijus (left) - Kaiju Inventory System
+local MyKaijusGroup = MiscTab:AddLeftGroupbox("My Kaijus")
+MyKaijusGroup:AddButton({ Text = "Refresh Inventory", Func = function()
+	State.MyKaijuList = GetOwnedKaijus()
+	local currency = GetCurrency()
+	local msg = "Cells: " .. math.floor(currency.Cells) .. " | Gems: " .. math.floor(currency.Gems) .. "\n"
+	local count = 0
+	for name, data in pairs(State.MyKaijuList) do
+		count = count + 1
+		msg = msg .. name .. " Lv." .. data.Level .. " (" .. data.Kills .. " kills)" .. (data.Favourite and " ⭐" or "") .. "\n"
+	end
+	msg = "Owned Kaijus: " .. count .. "\n" .. msg
+	Notify(msg, 5)
+	print(msg)
+end })
+MyKaijusGroup:AddLabel("Click 'Refresh Inventory' to view your kaijus", true)
+
+-- Auto Reclaim (left) - Auto Reclaim System
+local AutoReclaimGroup = MiscTab:AddLeftGroupbox("Auto Reclaim")
+AutoReclaimGroup:AddToggle("AutoReclaimEnabled", { Text = "Auto Reclaim on Death", Default = false, Callback = function(v)
+	Config.AutoReclaim = Config.AutoReclaim or {}
+	Config.AutoReclaim.Enabled = v
+	if v then Notify("Auto Reclaim: ON", 3) end
+end })
+AutoReclaimGroup:AddDropdown("AutoReclaimKaiju", { Text = "Kaiju to Reclaim", Values = (function()
+	local list = {}
+	for name, _ in pairs(GetOwnedKaijus()) do table.insert(list, name) end
+	if #list == 0 then table.insert(list, "None") end
+	table.sort(list)
+	return list
+end)(), Default = 1, Callback = function(v)
+	Config.AutoReclaim = Config.AutoReclaim or {}
+	Config.AutoReclaim.Kaiju = v
+end })
+AutoReclaimGroup:AddLabel("Automatically re-equips selected kaiju after death", true)
+
+-- Vote Kick (right)
+local VoteGroup = MiscTab:AddRightGroupbox("Vote Kick")
+VoteGroup:AddToggle("VoteAll", { Text = L("Lbl_VoteAll"), Default = false, Callback = function(v)
+	Config.Vote.AutoAll = v
+	if v then Notify(L("Msg_VoteOn"), 3) end
+end })
+VoteGroup:AddToggle("VoteYes", { Text = L("Lbl_VoteYes"), Default = true, Callback = function(v) Config.Vote.AutoYes = v end })
+local VoteFocusDrop = VoteGroup:AddDropdown("VoteSolo", { Text = L("Lbl_VoteSolo"), Values = AllPlayerNames(), Default = {}, Multi = true, Callback = function(v)
+	Config.Vote.Solo = NormSet(v)
+end })
+local VoteExcludeDrop = VoteGroup:AddDropdown("VoteExclude", { Text = L("Lbl_VoteExclude"), Values = AllPlayerNames(), Default = {}, Multi = true, Callback = function(v)
+	Config.Vote.Exclude = NormSet(v)
+end })
+State.VoteExcludeDrop = VoteExcludeDrop
+VoteGroup:AddToggle("VoteAutoFriends", { Text = L("Lbl_VoteAutoFriends"), Default = false, Callback = function(v)
+	Config.Vote.AutoFriends = v
+	if v then
+		local n = ExcludeFriends()
+		State.LastFriendScan = os.clock()
+		SyncExcludeDrop()
+		Notify(n > 0 and string.format(L("Msg_FriendsExcluded"), n) or L("Msg_NoFriends"), 4)
+	end
+end })
+VoteGroup:AddButton({ Text = L("Lbl_VoteRefresh"), Func = function()
+	local names = AllPlayerNames()
+	pcall(function() VoteFocusDrop:Refresh(names) end)
+	pcall(function() VoteExcludeDrop:Refresh(names) end)
+	Notify(string.format(L("Msg_VoteRefresh"), #names), 3)
+end })
+VoteGroup:AddLabel(L("Lbl_VoteNote"), true)
+
+-- Shop (right) - Shop System
+local ShopGroup = MiscTab:AddRightGroupbox("Shop")
+ShopGroup:AddButton({ Text = "Buy: Shinagawa Kun (2400 Cells)", Func = function()
+	local ok, msg = PurchaseKaiju("Shinagawa Kun")
+	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
+end })
+ShopGroup:AddButton({ Text = "Buy: Biollante (req Rose Biollante L75)", Func = function()
+	local ok, msg = PurchaseKaiju("Biollante")
+	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
+end })
+ShopGroup:AddButton({ Text = "Buy: Kong 2021 (req Kong 2017 L50+K20)", Func = function()
+	local ok, msg = PurchaseKaiju("Kong 2021")
+	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
+end })
+ShopGroup:AddLabel("Event Kaijus:", true)
+ShopGroup:AddButton({ Text = "Buy: Volcanic Biollante", Func = function()
+	local ok, msg = PurchaseKaiju("Volcanic Biollante")
+	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
+end })
+ShopGroup:AddButton({ Text = "Buy: Frostbite Godzilla", Func = function()
+	local ok, msg = PurchaseKaiju("Frostbite Godzilla")
+	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
+end })
+ShopGroup:AddButton({ Text = "Buy: Burning Godzilla", Func = function()
+	local ok, msg = PurchaseKaiju("Burning Godzilla")
+	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
+end })
+ShopGroup:AddButton({ Text = "Buy: Thermonuclear Godzilla", Func = function()
+	local ok, msg = PurchaseKaiju("Thermonuclear Godzilla")
+	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
+end })
+ShopGroup:AddButton({ Text = "Refresh Currency", Func = function()
+	local currency = GetCurrency()
+	Notify("Cells: " .. math.floor(currency.Cells) .. " | Gems: " .. math.floor(currency.Gems), 3)
+end })
+
+-- ================= SETTINGS TAB =================
+local SettingsTab = Window:AddTab("Settings")
+local UISettings = SettingsTab:AddLeftGroupbox("UI")
+UISettings:AddButton({ Text = L("Lbl_Unload"), Func = function() FullUnload() end })
+local autoDefault = false
+pcall(function() autoDefault = readfile("KaijuHub/autoload.txt") == "1" end)
+UISettings:AddToggle("AutoLoadScript", { Text = L("Lbl_Autoload"), Default = autoDefault, Callback = function(v)
+	local ok = pcall(writefile, "KaijuHub/autoload.txt", v and "1" or "0")
+	Notify(ok and (v and L("Msg_AutoloadOn") or L("Msg_AutoloadOff")) or L("Msg_NoFileAccess"), 3)
+end })
+UISettings:AddLabel(L("Lbl_MenuKeybind")):AddKeyPicker("MenuKeybind", { Default = "RightControl", NoUI = true, Text = L("Lbl_MenuKeybind") })
+Library.ToggleKeybind = Options.MenuKeybind
+
+-- Language dropdown
+UISettings:AddDropdown("Language", { Text = "Language / Idioma / Idioma", Values = { "English", "Español", "Português" }, Default = 1, Callback = function(v)
+	local langMap = { English = "en", Español = "es", Português = "pt" }
+	State.Lang = langMap[v] or "en"
+	Notify("Language changed to " .. v .. " (UI reload needed for full effect)", 3)
 end })
 
 -- Configuraciones del hub (guardar/cargar) + temas. Si el executor no
@@ -2295,6 +3321,45 @@ print("[Kaiju Hub] v1.0.18 listo")
 -- dropdowns, colores, keybinds). Si no hay, no hace nada.
 pcall(function()
 	if SaveManager then SaveManager:LoadAutoloadConfig() end
+end)
+
+-- Sync Config from UI after autoload (PealLib may not fire callbacks on load)
+pcall(function()
+	if Options then
+		-- Sync toggles
+		if Tgl("MoveEnabled") then Config.Movement.Enabled = Tgl("MoveEnabled").Value end
+		if Tgl("SilentEnabled") then Config.SilentAim.Enabled = Tgl("SilentEnabled").Value end
+		if Tgl("ESPEnabled") then Config.ESP.Enabled = Tgl("ESPEnabled").Value end
+		if Tgl("FarmBuilds") then Config.Farm.Builds = Tgl("FarmBuilds").Value end
+		if Tgl("FarmPlayers") then Config.Farm.Players = Tgl("FarmPlayers").Value end
+		if Tgl("AutoFarm") then Config.Farm.AutoFarm = Tgl("AutoFarm").Value end
+		if Tgl("BeamAlto") then Config.Farm.BeamAlto = Tgl("BeamAlto").Value end
+		if Tgl("Efficient") then Config.Farm.Efficient = Tgl("Efficient").Value end
+		if Tgl("KillEnabled") then Config.Kill.Enabled = Tgl("KillEnabled").Value end
+		if Tgl("BossFarmOn") then Config.BossFarm.Enabled = Tgl("BossFarmOn").Value end
+		if Tgl("VoteAll") then Config.Vote.AutoAll = Tgl("VoteAll").Value end
+		if Tgl("VoteYes") then Config.Vote.AutoYes = Tgl("VoteYes").Value end
+		if Tgl("RespawnAuto") then Config.Respawn.Auto = Tgl("RespawnAuto").Value end
+		if Tgl("BossDodge") then Config.BossFarm.Dodge = Tgl("BossDodge").Value end
+		if Tgl("BossAutoRespawn") then Config.BossFarm.AutoRespawn = Tgl("BossAutoRespawn").Value end
+		if Tgl("VoteAutoFriends") then Config.Vote.AutoFriends = Tgl("VoteAutoFriends").Value end
+		-- Sync sliders
+		if Options.MoveSprint then Config.Movement.SprintSpeedPercent = Options.MoveSprint.Value end
+		if Options.MoveWalk then Config.Movement.WalkSpeedPercent = Options.MoveWalk.Value end
+		if Options.AimFOV then Config.Aim.FOV = Options.AimFOV.Value end
+		if Options.SilentRange then Config.SilentAim.Range = Options.SilentRange.Value end
+		if Options.FarmBuildRange then Config.Farm.BuildRange = Options.FarmBuildRange.Value end
+		if Options.SkyAlt then Config.Farm.SkyAlt = Options.SkyAlt.Value end
+		if Options.EfficientRange then Config.Farm.EfficientRange = Options.EfficientRange.Value end
+		if Options.KillStick then Config.Kill.StickDist = Options.KillStick.Value end
+		if Options.KillSwitch then Config.Kill.SwitchTime = Options.KillSwitch.Value end
+		if Options.KillInterval then Config.Kill.Interval = Options.KillInterval.Value end
+		if Options.BossStick then Config.BossFarm.StickDist = Options.BossStick.Value end
+		if Options.ESPMaxDist then Config.ESP.MaxDistance = Options.ESPMaxDist.Value end
+		if Options.ESPTextSize then Config.ESP.TextSize = Options.ESPTextSize.Value end
+		if Options.ESPFill then Config.ESP.ChamsFillTransparency = Options.ESPFill.Value end
+		if Options.ESPOutline then Config.ESP.ChamsOutlineTransparency = Options.ESPOutline.Value end
+	end
 end)
 
 -- Registra la descarga total para que la próxima ejecución mate esta copia
