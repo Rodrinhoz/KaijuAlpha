@@ -3261,7 +3261,7 @@ Library.ToggleKeybind = Options.MenuKeybind
 
 -- Language dropdown
 UISettings:AddDropdown("Language", { Text = "Language / Idioma / Idioma", Values = { "English", "Español", "Português" }, Default = 1, Callback = function(v)
-	local langMap = { English = "en", Español = "es", Português = "pt" }
+	local langMap = { English = "en", ["Español"] = "es", ["Português"] = "pt" }
 	State.Lang = langMap[v] or "en"
 	Notify("Language changed to " .. v .. " (UI reload needed for full effect)", 3)
 end })
