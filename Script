@@ -1994,13 +1994,6 @@ local function SetSpawnSelection(islandIdx, kaijuName)
 						end
 						if kaijuName and rawget(up, "SelectedKaiju") ~= nil then
 							up.SelectedKaiju = kaijuName
-							done = true
-						end
-						-- Also check for other common names
-						if kaijuName then
-							if rawget(up, "KaijuName") ~= nil then up.KaijuName = kaijuName; done = true end
-							if rawget(up, "SelectedKaijuName") ~= nil then up.SelectedKaijuName = kaijuName; done = true end
-							if rawget(up, "CurrentKaiju") ~= nil then up.CurrentKaiju = kaijuName; done = true end
 						end
 					end
 				end
@@ -2025,44 +2018,6 @@ local function PressSpawn()
 		end
 	end)
 	return pressed
-end
-
--- Direct data store manipulation for spawn selection (CurrentKaiju StringValue in player data)
-local function SetSpawnSelectionDirect(islandIdx, kaijuName)
-	local rs = ReplicatedStorage
-	local lp = Players.LocalPlayer
-	local dataFolder = rs.Data:FindFirstChild(lp.UserId .. "_Data")
-	if not dataFolder then return false end
-	
-	-- Modify CurrentKaiju StringValue in player data
-	local currentKaiju = dataFolder:FindFirstChild("CurrentKaiju")
-	if currentKaiju and currentKaiju:IsA("StringValue") then
-		currentKaiju.Value = kaijuName
-		return true
-	end
-	
-	-- Fallback: look in PlayerGui Menu
-	local pg = LocalPlayer:FindFirstChild("PlayerGui")
-	local menu = pg and pg:FindFirstChild("Menu")
-	if not menu then return false end
-	
-	for _, obj in ipairs(menu:GetDescendants()) do
-		if obj:IsA("StringValue") or obj:IsA("ObjectValue") or obj:IsA("IntValue") then
-			if obj.Name == "SelectedKaiju" or obj.Name == "KaijuName" or obj.Name == "CurrentKaiju" then
-				if obj:IsA("StringValue") then
-					obj.Value = kaijuName
-					return true
-				elseif obj:IsA("ObjectValue") then
-					obj.Value = kaijuName
-					return true
-				end
-			elseif obj.Name == "IslandIndex" and obj:IsA("IntValue") then
-				obj.Value = islandIdx
-				return true
-			end
-		end
-	end
-	return false
 end
 
 local function MyKaijuName()
@@ -2703,6 +2658,7 @@ local function QuestFarmTick()
 				State.QuestStuckCount = 0
 			end
 			State.QuestLastProgress = prog
+			Notify("QuestFarm: Selected " .. best.Type .. " - " .. best.Quest.Info .. " [" .. best.Quest.Progress .. "/" .. best.Quest.Goal .. "] Cat: " .. tostring(best.Quest.Category), 3)
 			
 			-- If stuck for too long, try next quest (degrade)
 			if State.QuestStuckCount > 5 and Config.QuestFarm.DegradeStuck then
@@ -2712,6 +2668,7 @@ local function QuestFarmTick()
 		else
 			State.QuestCurrentId = nil
 			State.QuestCurrentType = nil
+			Notify("QuestFarm: No quests available", 3)
 		end
 	end
 	
@@ -2729,6 +2686,7 @@ local function QuestFarmTick()
 		end
 		if currentQuest then
 			local category = currentQuest.Category
+			Notify("QuestFarm: Farming category=" .. tostring(category) .. " prog=" .. currentQuest.Progress .. "/" .. currentQuest.Goal, 3)
 			local myKaiju = GetMyKaiju()
 			local myHRP = myKaiju and myKaiju:FindFirstChild("HumanoidRootPart")
 			if myHRP then
@@ -2762,20 +2720,6 @@ local function QuestFarmTick()
 					Config.BossFarm.Enabled = true
 				elseif category == "PlayTime" then
 					-- Just wait (playtime accumulates naturally)
-				end
-			end
-		end
-	end
-	
-	-- Debug: print current quest status every 30s
-	if State.QuestCurrentId and (now - (State.QuestDebugTime or 0)) > 30 then
-		State.QuestDebugTime = now
-		local available = GetAvailableQuests()
-		if available then
-			for _, aq in pairs(available) do
-				if aq.Quest.Id == State.QuestCurrentId then
-					print("[QuestFarm] " .. aq.Type .. ": " .. aq.Quest.Info .. " " .. aq.Quest.Progress .. "/" .. aq.Quest.Goal .. " (" .. aq.Quest.Category .. ")")
-					break
 				end
 			end
 		end
@@ -3304,12 +3248,8 @@ end
 
 MyKaijusGroup:AddButton({ Text = "Refresh Inventory", Func = RefreshMyKaijus })
 
--- Kaiju selector for actions
-local ownedNames = {}
-for name, _ in pairs(GetOwnedKaijus()) do table.insert(ownedNames, name) end
-if #ownedNames == 0 then table.insert(ownedNames, "None") end
-table.sort(ownedNames)
-local MyKaijuSelectDrop = MyKaijusGroup:AddDropdown("MyKaijuSelect", { Text = "Select Kaiju", Values = ownedNames, Default = 1, Callback = function(v)
+-- Kaiju selector for actions - starts with placeholder, populated after init
+local MyKaijuSelectDrop = MyKaijusGroup:AddDropdown("MyKaijuSelect", { Text = "Select Kaiju", Values = { "Loading..." }, Default = 1, Callback = function(v)
 	State.SelectedMyKaiju = v
 end })
 
@@ -3325,14 +3265,10 @@ MyKaijusGroup:AddButton({ Text = "Reset and Respawn", Func = function()
 		local cr = remotes and remotes:FindFirstChild("CombatRemote")
 		if cr then cr:FireServer("Death") end
 	end)
-	-- Wait for death then spawn with selected kaiju
+	-- Wait for death then spawn with selected kaiju (original approach with delay)
 	task.delay(1.5, function()
 		local idx = SPAWN_INDEX[Config.Respawn.Island] or 1
-		-- Try SetSpawnSelection first (uses UI upvalues)
-		local success = SetSpawnSelection(idx, kaijuName)
-		-- Fallback: try direct GUI manipulation
-		if not success then success = SetSpawnSelectionDirect(idx, kaijuName) end
-		if success and PressSpawn() then
+		if SetSpawnSelection(idx, kaijuName) and PressSpawn() then
 			Notify("Respawning as " .. kaijuName .. " on " .. Config.Respawn.Island, 3)
 		else
 			Notify("Spawn failed - press Spawn manually", 4)
@@ -3509,6 +3445,13 @@ if initialKaiju then
 	State.MoveBase = GetSpeedMulti(initialKaiju) or 1
 	State.InitialMoveBase = State.MoveBase
 end
+
+-- Populate My Kaijus dropdown after init
+task.delay(2, function()
+	if not State.Unloaded then
+		RefreshMyKaijus()
+	end
+end)
 
 Notify("Kaiju Hub v1.0.18 cargado (PealLib)", 5)
 print("[Kaiju Hub] v1.0.18 listo")
