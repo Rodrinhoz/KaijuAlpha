@@ -2731,7 +2731,7 @@ local function QuestFarmTick()
 			local myHRP = myKaiju and myKaiju:FindFirstChild("HumanoidRootPart")
 			if myHRP then
 				-- Quest farming logic by category
-				if category == "Kill" or category == "KillTarget" or category == "KillAny" then
+				if category == "Kill" or category == "KillTarget" or category == "KillAny" or category == "Defeat" or category == "DefeatPlayers" then
 					-- Find and kill enemies
 					local enemies = GetEnemyKaijus()
 					if #enemies > 0 then
@@ -2744,22 +2744,27 @@ local function QuestFarmTick()
 							end)
 							FireSkill("Attack1")
 						end
+					else
+						Notify("QuestFarm: No enemies for Kill quest, will degrade", 3)
 					end
-				elseif category == "Walk" or category == "Swimming" or category == "Flying" then
+				elseif category == "Walk" or category == "Swimming" or category == "Flying" or category == "Move" or category == "Distance" then
 					-- Move around the map
 					local moveDir = Vector3.new(math.random(-100, 100), 0, math.random(-100, 100)).Unit
 					pcall(function()
 						myHRP.CFrame = myHRP.CFrame + moveDir * 50
 					end)
-				elseif category == "BuildingBeam" or category == "BuildingDestroy" then
+				elseif category == "BuildingBeam" or category == "BuildingDestroy" or category == "Beam" or category == "Destroy" then
 					-- Beam buildings
 					Config.Farm.Builds = true
 					State.LastFarmRefresh = 0
-				elseif category == "BossKill" or category == "BossDamage" then
+				elseif category == "BossKill" or category == "BossDamage" or category == "Boss" then
 					-- Go to boss and attack
 					Config.BossFarm.Enabled = true
 				elseif category == "PlayTime" then
 					-- Just wait (playtime accumulates naturally)
+				else
+					-- Unknown category - log it
+					Notify("QuestFarm: Unknown category '" .. tostring(category) .. "' - add handler", 4)
 				end
 			end
 		end
