@@ -745,6 +745,28 @@ local KAIJU_REQUIREMENTS = {
 	["Thermonuclear Godzilla"] = { Price = 0, Requirements = { ["Burning Godzilla"] = { Level = 75 } } },
 }
 
+-- Known flyer kaijus (cannot swim)
+local FLYER_KAIJUS = {
+	["Destoroyah Final Form"] = true,
+	["Destoroyah Flying Form"] = true,
+	["Destoroyah Aggregate"] = true,
+	["Mecha Godzilla 2021"] = true,
+	["Mecha Godzilla 2021 Remodel"] = true,
+	["Kiryu Type 3"] = true,
+	["SuperMechaGodzilla"] = true,
+	["Mecha Godzilla"] = true,
+	["Jet Jaguar"] = true,
+	["Jet Jaguar Beta"] = true,
+	["Mothra"] = true,
+	["Rodan"] = true,
+	["Ghidorah"] = true,
+	["King Ghidorah"] = true,
+}
+
+local function IsFlyerKaiju(kaijuName)
+	return FLYER_KAIJUS[kaijuName] == true
+end
+
 local function GetKaijuRequirement(kaijuName)
 	return KAIJU_REQUIREMENTS[kaijuName] or { Price = 0, Requirements = {} }
 end
@@ -2730,6 +2752,10 @@ local function QuestFarmTick()
 			local myKaiju = GetMyKaiju()
 			local myHRP = myKaiju and myKaiju:FindFirstChild("HumanoidRootPart")
 			if myHRP then
+				-- Check if current kaiju is a flyer and quest is swimming
+				local currentKaijuName = myKaiju:GetAttribute("KaijuName")
+				local isFlyer = currentKaijuName and IsFlyerKaiju(currentKaijuName)
+				
 				-- Quest farming logic by category
 				if category == "Kill" or category == "KillTarget" or category == "KillAny" or category == "Defeat" or category == "DefeatPlayers" then
 					-- Find and kill enemies
@@ -2748,11 +2774,19 @@ local function QuestFarmTick()
 						Notify("QuestFarm: No enemies for Kill quest, will degrade", 3)
 					end
 				elseif category == "Walk" or category == "Swimming" or category == "Flying" or category == "Move" or category == "Distance" then
-					-- Move around the map
-					local moveDir = Vector3.new(math.random(-100, 100), 0, math.random(-100, 100)).Unit
-					pcall(function()
-						myHRP.CFrame = myHRP.CFrame + moveDir * 50
-					end)
+					-- Handle swimming for flyers
+					if isFlyer and (category == "Swimming" or category == "Flying") then
+						Notify("QuestFarm: Flyer kaiju (" .. currentKaijuName .. ") cannot " .. category .. " - skipping quest", 3)
+						-- Mark quest as skipped for degradation
+						State.SkippedQuestId = State.QuestCurrentId
+						State.SkippedQuestType = State.QuestCurrentType
+					else
+						-- Move around the map
+						local moveDir = Vector3.new(math.random(-100, 100), 0, math.random(-100, 100)).Unit
+						pcall(function()
+							myHRP.CFrame = myHRP.CFrame + moveDir * 50
+						end)
+					end
 				elseif category == "BuildingBeam" or category == "BuildingDestroy" or category == "Beam" or category == "Destroy" then
 					-- Beam buildings
 					Config.Farm.Builds = true
