@@ -1456,6 +1456,7 @@ local function RefreshFarmTargets()
 					end
 				end
 			end
+			Notify("AutoFarm: Scanned " .. #State.FarmBuildings .. " buildings from map", 3)
 		end
 		for _, b in ipairs(State.FarmBuildings) do
 			if b.Model.Parent and (b.Pos - myPos).Magnitude <= Config.Farm.BuildRange then
@@ -1482,6 +1483,7 @@ local function RefreshFarmTargets()
 	end
 	State.FarmList = list
 	if State.FarmIdx > #list then State.FarmIdx = 1 end
+	Notify("AutoFarm: " .. #list .. " targets in range (Wallcheck: " .. tostring(Config.Farm.Wallcheck) .. ")", 3)
 end
 
 -- Elige el beam: Attack5 solo si tienes Power suficiente, si no Attack4.
@@ -1674,9 +1676,18 @@ local function AutoFarmTick()
 		return
 	end
 	local isl = NearestIsland(myHRP.Position)
-	if not isl then return end
+	if not isl then
+		Notify("AutoFarm: No island detected near you", 3)
+		return
+	end
 	local skyTop = Vector3.new(isl.Pos.X, isl.Pos.Y + (Config.Farm.SkyAlt or 150), isl.Pos.Z)
 	AcquireSkyPlatform(skyTop)
+	-- Debug: show farm status
+	if State.FarmList and #State.FarmList > 0 then
+		Notify("AutoFarm: " .. #State.FarmList .. " targets | Platform: " .. tostring(State.SkyPlatform ~= nil), 2)
+	else
+		Notify("AutoFarm: No targets found - scanning...", 3)
+	end
 	-- Si te tumban o caes, te devuelve arriba (mirando al objetivo)
 	if myHRP.Position.Y < skyTop.Y - 25 then
 		local face = CurrentFarmTarget()
