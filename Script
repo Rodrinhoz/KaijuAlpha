@@ -2109,11 +2109,18 @@ end
 
 -- Pone la isla (y tu kaiju actual) en la selección del menú
 local function SetSpawnSelection(islandIdx, kaijuName)
-	if typeof(getconnections) ~= "function" or typeof(debug.getupvalues) ~= "function" then return false end
+	if typeof(getconnections) ~= "function" or typeof(debug.getupvalues) ~= "function" then
+		Notify("SetSpawnSelection: getconnections/debug.getupvalues not available", 3)
+		return false
+	end
 	local done = false
 	pcall(function()
 		local b = FindSpawnButton()
-		if not b then return end
+		if not b then
+			Notify("SetSpawnSelection: Spawn button not found", 3)
+			return
+		end
+		Notify("SetSpawnSelection: Found spawn button, setting IslandIndex=" .. tostring(islandIdx) .. " Kaiju=" .. tostring(kaijuName), 2)
 		for _, conn in ipairs(getconnections(b.MouseButton1Click)) do
 			local f = conn.Function
 			if type(f) == "function" then
@@ -2125,6 +2132,7 @@ local function SetSpawnSelection(islandIdx, kaijuName)
 						end
 						if kaijuName and rawget(up, "SelectedKaiju") ~= nil then
 							up.SelectedKaiju = kaijuName
+							Notify("SetSpawnSelection: Set SelectedKaiju to " .. kaijuName, 2)
 						end
 					end
 				end
@@ -2135,15 +2143,22 @@ local function SetSpawnSelection(islandIdx, kaijuName)
 end
 
 local function PressSpawn()
-	if typeof(getconnections) ~= "function" then return false end
+	if typeof(getconnections) ~= "function" then
+		Notify("PressSpawn: getconnections not available", 3)
+		return false
+	end
 	local pressed = false
 	pcall(function()
 		local b = FindSpawnButton()
-		if not b then return end
+		if not b then
+			Notify("PressSpawn: Spawn button not found", 3)
+			return
+		end
 		for _, conn in ipairs(getconnections(b.MouseButton1Click)) do
 			local f = conn.Function
 			if type(f) == "function" and pcall(f) then
 				pressed = true
+				Notify("PressSpawn: Fired spawn connection", 2)
 				break
 			end
 		end
