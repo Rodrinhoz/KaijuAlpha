@@ -2108,8 +2108,34 @@ local function FindSpawnButton()
 	return nil
 end
 
+-- Try to find SpawnRemote for direct spawning
+local function GetSpawnRemote()
+	if State.SpawnRemote and State.SpawnRemote.Parent then return State.SpawnRemote end
+	pcall(function()
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		State.SpawnRemote = remotes and remotes:FindFirstChild("SpawnRemote")
+	end)
+	return State.SpawnRemote
+end
+
 -- Pone la isla (y tu kaiju actual) en la selección del menú
 local function SetSpawnSelection(islandIdx, kaijuName)
+	-- First try direct RemoteEvent if available
+	local spawnRemote = GetSpawnRemote()
+	if spawnRemote then
+		Notify("SetSpawnSelection: Trying SpawnRemote with island=" .. islandIdx .. " kaiju=" .. kaijuName, 2)
+		local ok = pcall(function()
+			spawnRemote:FireServer("Spawn", islandIdx, kaijuName)
+		end)
+		if ok then
+			Notify("SetSpawnSelection: SpawnRemote fired successfully", 2)
+			return true
+		else
+			Notify("SetSpawnSelection: SpawnRemote failed, trying UI...", 2)
+		end
+	end
+	
+	-- Fallback to UI manipulation
 	if typeof(getconnections) ~= "function" or typeof(debug.getupvalues) ~= "function" then
 		Notify("SetSpawnSelection: getconnections/debug.getupvalues not available", 3)
 		return false
@@ -2125,27 +2151,16 @@ local function SetSpawnSelection(islandIdx, kaijuName)
 		for _, conn in ipairs(getconnections(b.MouseButton1Click)) do
 			local f = conn.Function
 			if type(f) == "function" then
-				Notify("SetSpawnSelection: Checking upvalues...", 2)
 				for i, up in ipairs(debug.getupvalues(f)) do
 					if type(up) == "table" then
-						-- Print all table upvalues for debugging
-						local keys = {}
-						for k, v in pairs(up) do table.insert(keys, k .. "=" .. tostring(v)) end
-						Notify("SetSpawnSelection: Upvalue[" .. i .. "] keys: " .. table.concat(keys, ", "), 2)
 						if rawget(up, "IslandIndex") ~= nil and islandIdx then
 							up.IslandIndex = islandIdx
 							done = true
-							Notify("SetSpawnSelection: Set IslandIndex to " .. islandIdx, 2)
 						end
-						if kaijuName and rawget(up, "SelectedKaiju") ~= nil then
-							up.SelectedKaiju = kaijuName
-							Notify("SetSpawnSelection: Set SelectedKaiju to " .. kaijuName, 2)
-						elseif kaijuName then
-							-- Try common alternative names
-							for altName in pairs({SelectedCharacter=1, Character=1, Kaiju=1, KaijuName=1, Unit=1}) do
+						if kaijuName then
+							for altName in pairs({SelectedKaiju=1, SelectedCharacter=1, Character=1, Kaiju=1, KaijuName=1, Unit=1}) do
 								if rawget(up, altName) ~= nil then
 									up[altName] = kaijuName
-									Notify("SetSpawnSelection: Set " .. altName .. " to " .. kaijuName, 2)
 								end
 							end
 						end
@@ -2158,6 +2173,19 @@ local function SetSpawnSelection(islandIdx, kaijuName)
 end
 
 local function PressSpawn()
+	-- Try SpawnRemote first
+	local spawnRemote = GetSpawnRemote()
+	if spawnRemote then
+		Notify("PressSpawn: Trying SpawnRemote", 2)
+		local ok = pcall(function()
+			spawnRemote:FireServer("ConfirmSpawn")
+		end)
+		if ok then
+			Notify("PressSpawn: SpawnRemote fired successfully", 2)
+			return true
+		end
+	end
+	
 	if typeof(getconnections) ~= "function" then
 		Notify("PressSpawn: getconnections not available", 3)
 		return false
