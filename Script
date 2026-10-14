@@ -3159,26 +3159,55 @@ MyKaijusGroup:AddButton({ Text = "Refresh Inventory", Func = function()
 	Notify(msg, 5)
 	print(msg)
 end })
-MyKaijusGroup:AddLabel("Click 'Refresh Inventory' to view your kaijus", true)
+
+-- Kaiju selector for actions
+local ownedNames = {}
+for name, _ in pairs(GetOwnedKaijus()) do table.insert(ownedNames, name) end
+if #ownedNames == 0 then table.insert(ownedNames, "None") end
+table.sort(ownedNames)
+local MyKaijuSelectDrop = MyKaijusGroup:AddDropdown("MyKaijuSelect", { Text = "Select Kaiju", Values = ownedNames, Default = 1, Callback = function(v)
+	State.SelectedMyKaiju = v
+end })
+
+MyKaijusGroup:AddButton({ Text = "Reset and Respawn", Func = function()
+	local kaijuName = State.SelectedMyKaiju
+	if not kaijuName or kaijuName == "None" then
+		Notify("Select a kaiju first", 3)
+		return
+	end
+	-- Force death then respawn with selected kaiju
+	pcall(function()
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		local cr = remotes and remotes:FindFirstChild("CombatRemote")
+		if cr then cr:FireServer("Death") end
+	end)
+	-- Set spawn selection to chosen kaiju
+	task.delay(1, function()
+		local idx = SPAWN_INDEX[Config.Respawn.Island] or 1
+		SetSpawnSelection(idx, kaijuName)
+		PressSpawn()
+		Notify("Respawning with " .. kaijuName .. " on " .. Config.Respawn.Island, 3)
+	end)
+end })
+MyKaijusGroup:AddLabel("Select a kaiju then click Reset and Respawn to re-equip it after death", true)
 
 -- Auto Reclaim (left) - Auto Reclaim System
 local AutoReclaimGroup = MiscTab:AddLeftGroupbox("Auto Reclaim")
-AutoReclaimGroup:AddToggle("AutoReclaimEnabled", { Text = "Auto Reclaim on Death", Default = false, Callback = function(v)
+AutoReclaimGroup:AddToggle("AutoReclaimBattlepass", { Text = "Auto Reclaim Battlepass", Default = false, Callback = function(v)
 	Config.AutoReclaim = Config.AutoReclaim or {}
-	Config.AutoReclaim.Enabled = v
-	if v then Notify("Auto Reclaim: ON", 3) end
+	Config.AutoReclaim.Battlepass = v
+	Notify("Auto Reclaim Battlepass: " .. (v and "ON" or "OFF"), 3)
 end })
-AutoReclaimGroup:AddDropdown("AutoReclaimKaiju", { Text = "Kaiju to Reclaim", Values = (function()
-	local list = {}
-	for name, _ in pairs(GetOwnedKaijus()) do table.insert(list, name) end
-	if #list == 0 then table.insert(list, "None") end
-	table.sort(list)
-	return list
-end)(), Default = 1, Callback = function(v)
+AutoReclaimGroup:AddToggle("AutoReclaimQuest", { Text = "Auto Reclaim Quest", Default = false, Callback = function(v)
 	Config.AutoReclaim = Config.AutoReclaim or {}
-	Config.AutoReclaim.Kaiju = v
+	Config.AutoReclaim.Quest = v
+	Notify("Auto Reclaim Quest: " .. (v and "ON" or "OFF"), 3)
 end })
-AutoReclaimGroup:AddLabel("Automatically re-equips selected kaiju after death", true)
+AutoReclaimGroup:AddToggle("AutoReclaimCodes", { Text = "Auto Reclaim Codes", Default = false, Callback = function(v)
+	Config.AutoReclaim = Config.AutoReclaim or {}
+	Config.AutoReclaim.Codes = v
+	Notify("Auto Reclaim Codes: " .. (v and "ON" or "OFF"), 3)
+end })
 
 -- Vote Kick (right)
 local VoteGroup = MiscTab:AddRightGroupbox("Vote Kick")
@@ -3213,33 +3242,49 @@ VoteGroup:AddLabel(L("Lbl_VoteNote"), true)
 
 -- Shop (right) - Shop System
 local ShopGroup = MiscTab:AddRightGroupbox("Shop")
-ShopGroup:AddButton({ Text = "Buy: Shinagawa Kun (2400 Cells)", Func = function()
-	local ok, msg = PurchaseKaiju("Shinagawa Kun")
-	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
+-- Dynamic kaiju list from KAIJU_REQUIREMENTS
+local shopNames = {}
+for name, _ in pairs(KAIJU_REQUIREMENTS) do table.insert(shopNames, name) end
+table.sort(shopNames)
+local ShopSelectDrop = ShopGroup:AddDropdown("ShopSelect", { Text = "Select Kaiju", Values = shopNames, Default = 1, Callback = function(v)
+	Config.Shop = Config.Shop or {}
+	Config.Shop.SelectedKaiju = v
 end })
-ShopGroup:AddButton({ Text = "Buy: Biollante (req Rose Biollante L75)", Func = function()
-	local ok, msg = PurchaseKaiju("Biollante")
-	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
-end })
-ShopGroup:AddButton({ Text = "Buy: Kong 2021 (req Kong 2017 L50+K20)", Func = function()
-	local ok, msg = PurchaseKaiju("Kong 2021")
-	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
-end })
-ShopGroup:AddLabel("Event Kaijus:", true)
-ShopGroup:AddButton({ Text = "Buy: Volcanic Biollante", Func = function()
-	local ok, msg = PurchaseKaiju("Volcanic Biollante")
-	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
-end })
-ShopGroup:AddButton({ Text = "Buy: Frostbite Godzilla", Func = function()
-	local ok, msg = PurchaseKaiju("Frostbite Godzilla")
-	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
-end })
-ShopGroup:AddButton({ Text = "Buy: Burning Godzilla", Func = function()
-	local ok, msg = PurchaseKaiju("Burning Godzilla")
-	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
-end })
-ShopGroup:AddButton({ Text = "Buy: Thermonuclear Godzilla", Func = function()
-	local ok, msg = PurchaseKaiju("Thermonuclear Godzilla")
+
+-- Requirements display
+local ReqLabel = ShopGroup:AddLabel("Requirements: Select a kaiju", true)
+local ReqDetailLabel = ShopGroup:AddLabel("", true)
+
+-- Update requirements when selection changes
+ShopSelectDrop.Callback = function(v)
+	Config.Shop = Config.Shop or {}
+	Config.Shop.SelectedKaiju = v
+	local req = GetKaijuRequirement(v)
+	local msg = "Requirements for " .. v .. ":\n"
+	if req.Price and req.Price > 0 then msg = msg .. "Price: " .. req.Price .. " Cells\n" end
+	for rname, rdata in pairs(req.Requirements) do
+		local met, detail = CheckRequirementMet(rname, rdata)
+		msg = msg .. (met and "✓ " or "✗ ") .. rname .. " - " .. detail .. "\n"
+	end
+	pcall(function() ReqLabel:SetText(msg) end)
+end
+-- Trigger initial
+local initReq = GetKaijuRequirement(Config.Shop and Config.Shop.SelectedKaiju or shopNames[1] or "")
+local initMsg = "Requirements for " .. (Config.Shop and Config.Shop.SelectedKaiju or shopNames[1] or "") .. ":\n"
+if initReq.Price and initReq.Price > 0 then initMsg = initMsg .. "Price: " .. initReq.Price .. " Cells\n" end
+for rname, rdata in pairs(initReq.Requirements) do
+	local met, detail = CheckRequirementMet(rname, rdata)
+	initMsg = initMsg .. (met and "✓ " or "✗ ") .. rname .. " - " .. detail .. "\n"
+end
+pcall(function() ReqLabel:SetText(initMsg) end)
+
+ShopGroup:AddButton({ Text = "Buy Selected Kaiju", Func = function()
+	local kaijuName = Config.Shop and Config.Shop.SelectedKaiju
+	if not kaijuName or kaijuName == "" then
+		Notify("Select a kaiju first", 3)
+		return
+	end
+	local ok, msg = PurchaseKaiju(kaijuName)
 	Notify(ok and ("Success: " .. msg) or ("Failed: " .. msg), ok and 3 or 5)
 end })
 ShopGroup:AddButton({ Text = "Refresh Currency", Func = function()
