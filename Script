@@ -1994,6 +1994,13 @@ local function SetSpawnSelection(islandIdx, kaijuName)
 						end
 						if kaijuName and rawget(up, "SelectedKaiju") ~= nil then
 							up.SelectedKaiju = kaijuName
+							done = true
+						end
+						-- Also check for other common names
+						if kaijuName then
+							if rawget(up, "KaijuName") ~= nil then up.KaijuName = kaijuName; done = true end
+							if rawget(up, "SelectedKaijuName") ~= nil then up.SelectedKaijuName = kaijuName; done = true end
+							if rawget(up, "CurrentKaiju") ~= nil then up.CurrentKaiju = kaijuName; done = true end
 						end
 					end
 				end
@@ -2018,6 +2025,44 @@ local function PressSpawn()
 		end
 	end)
 	return pressed
+end
+
+-- Direct data store manipulation for spawn selection (CurrentKaiju StringValue in player data)
+local function SetSpawnSelectionDirect(islandIdx, kaijuName)
+	local rs = ReplicatedStorage
+	local lp = Players.LocalPlayer
+	local dataFolder = rs.Data:FindFirstChild(lp.UserId .. "_Data")
+	if not dataFolder then return false end
+	
+	-- Modify CurrentKaiju StringValue in player data
+	local currentKaiju = dataFolder:FindFirstChild("CurrentKaiju")
+	if currentKaiju and currentKaiju:IsA("StringValue") then
+		currentKaiju.Value = kaijuName
+		return true
+	end
+	
+	-- Fallback: look in PlayerGui Menu
+	local pg = LocalPlayer:FindFirstChild("PlayerGui")
+	local menu = pg and pg:FindFirstChild("Menu")
+	if not menu then return false end
+	
+	for _, obj in ipairs(menu:GetDescendants()) do
+		if obj:IsA("StringValue") or obj:IsA("ObjectValue") or obj:IsA("IntValue") then
+			if obj.Name == "SelectedKaiju" or obj.Name == "KaijuName" or obj.Name == "CurrentKaiju" then
+				if obj:IsA("StringValue") then
+					obj.Value = kaijuName
+					return true
+				elseif obj:IsA("ObjectValue") then
+					obj.Value = kaijuName
+					return true
+				end
+			elseif obj.Name == "IslandIndex" and obj:IsA("IntValue") then
+				obj.Value = islandIdx
+				return true
+			end
+		end
+	end
+	return false
 end
 
 local function MyKaijuName()
@@ -3285,17 +3330,8 @@ MyKaijusGroup:AddButton({ Text = "Reset and Respawn", Func = function()
 		local idx = SPAWN_INDEX[Config.Respawn.Island] or 1
 		-- Try SetSpawnSelection first (uses UI upvalues)
 		local success = SetSpawnSelection(idx, kaijuName)
-		-- Fallback: try to set via remote if available
-		if not success then
-			pcall(function()
-				local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-				local sr = remotes and remotes:FindFirstChild("SpawnRemote")
-				if sr then
-					sr:FireServer("SetSelection", idx, kaijuName)
-					success = true
-				end
-			end)
-		end
+		-- Fallback: try direct GUI manipulation
+		if not success then success = SetSpawnSelectionDirect(idx, kaijuName) end
 		if success and PressSpawn() then
 			Notify("Respawning as " .. kaijuName .. " on " .. Config.Respawn.Island, 3)
 		else
