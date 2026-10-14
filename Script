@@ -582,6 +582,7 @@ local State = {
 	QuestSwitchingForSwim = false,
 	QuestSwitchTargetKaiju = nil,
 	QuestSwitchingForFarm = false,
+	QuestSwitchAttempted = false,
 	-- FarmKaijus
 	FarmKaijuTarget = nil,
 	FarmKaijuStage = 0, -- 0=idle, 1=checking reqs, 2=progressing req, 3=buying
@@ -2800,6 +2801,8 @@ local function QuestFarmTick()
 			Notify("QuestFarm: Respawned as " .. currentName .. " - starting farm", 3)
 			State.QuestSwitchingForFarm = false
 			State.QuestSwitchTargetKaiju = nil
+			-- Reset switch attempted so it can be retried if quest changes
+			State.QuestSwitchAttempted = false
 			-- Continue to farming logic below
 		else
 			-- Still waiting for respawn, skip this tick
@@ -2836,13 +2839,14 @@ local function QuestFarmTick()
 			State.QuestLastProgress = prog
 			Notify("QuestFarm: Selected " .. best.Type .. " - " .. best.Quest.Info .. " [" .. best.Quest.Progress .. "/" .. best.Quest.Goal .. "] Cat: " .. tostring(best.Quest.Category), 3)
 			
-			-- Auto-switch to Final Wars Godzilla for farming (if owned)
-			if IsKaijuOwned("Final Wars Godzilla") then
+			-- Auto-switch to Final Wars Godzilla for farming (if owned) - only once per quest
+			if IsKaijuOwned("Final Wars Godzilla") and not State.QuestSwitchAttempted then
 				local currentName = myKaiju and myKaiju:GetAttribute("KaijuName")
 				if currentName ~= "Final Wars Godzilla" then
 					Notify("QuestFarm: Switching to Final Wars Godzilla for farming", 3)
 					State.QuestSwitchingForFarm = true
 					State.QuestSwitchTargetKaiju = "Final Wars Godzilla"
+					State.QuestSwitchAttempted = true
 					-- Force death and respawn with Final Wars
 					pcall(function()
 						local remotes = ReplicatedStorage:FindFirstChild("Remotes")
@@ -2855,7 +2859,6 @@ local function QuestFarmTick()
 							Notify("Respawned as Final Wars Godzilla for farming", 3)
 						end
 					end)
-					return -- Wait for respawn before continuing
 				end
 			end
 			
@@ -2868,6 +2871,7 @@ local function QuestFarmTick()
 					-- Mark current as "skipped" by temporarily ignoring it
 					State.SkippedQuestId = best.Quest.Id
 					State.SkippedQuestType = best.Type
+					State.QuestSwitchAttempted = false -- Reset for next quest
 					Notify("QuestFarm: Stuck - degrading to next quest", 3)
 				end
 			end
