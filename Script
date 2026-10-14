@@ -2125,15 +2125,29 @@ local function SetSpawnSelection(islandIdx, kaijuName)
 		for _, conn in ipairs(getconnections(b.MouseButton1Click)) do
 			local f = conn.Function
 			if type(f) == "function" then
-				for _, up in ipairs(debug.getupvalues(f)) do
+				Notify("SetSpawnSelection: Checking upvalues...", 2)
+				for i, up in ipairs(debug.getupvalues(f)) do
 					if type(up) == "table" then
+						-- Print all table upvalues for debugging
+						local keys = {}
+						for k, v in pairs(up) do table.insert(keys, k .. "=" .. tostring(v)) end
+						Notify("SetSpawnSelection: Upvalue[" .. i .. "] keys: " .. table.concat(keys, ", "), 2)
 						if rawget(up, "IslandIndex") ~= nil and islandIdx then
 							up.IslandIndex = islandIdx
 							done = true
+							Notify("SetSpawnSelection: Set IslandIndex to " .. islandIdx, 2)
 						end
 						if kaijuName and rawget(up, "SelectedKaiju") ~= nil then
 							up.SelectedKaiju = kaijuName
 							Notify("SetSpawnSelection: Set SelectedKaiju to " .. kaijuName, 2)
+						elseif kaijuName then
+							-- Try common alternative names
+							for altName in pairs({SelectedCharacter=1, Character=1, Kaiju=1, KaijuName=1, Unit=1}) do
+								if rawget(up, altName) ~= nil then
+									up[altName] = kaijuName
+									Notify("SetSpawnSelection: Set " .. altName .. " to " .. kaijuName, 2)
+								end
+							end
 						end
 					end
 				end
