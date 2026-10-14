@@ -501,32 +501,8 @@ local Locales = {
 	},
 }
 
-local function L(key)
-	local lang = State.Lang or "en"
-	local loc = Locales[lang] or Locales.en
-	return loc[key] or Locales.en[key] or key
-end
-
-print("[Kaiju Hub] PealLib loaded, creating UI...")
-
--- ================= CONFIG =================
-local Config = {
-	Aim = { ShowFOV = false, FOV = 120, FOVColor = Color3.fromRGB(125, 85, 255), TargetPart = "HumanoidRootPart" },
-	ESP = { Enabled = false, ShowName = true, ShowHealth = true, ShowDistance = true, ShowChams = true, TeamCheck = true, MaxDistance = 5000, TextSize = 14, ChamsFillTransparency = 0.5, ChamsOutlineTransparency = 0 },
-	Movement = { Enabled = false, SprintSpeedPercent = 0, WalkSpeedPercent = 0 },
-	SilentAim = { Enabled = false, TargetPart = "HumanoidRootPart", Range = 1500,
-		OnlyWhileAttacking = true },
-	Farm = { Builds = false, Players = false, BuildRange = 1500, Wallcheck = true,
-		AutoFarm = false, SkyAlt = 70, BeamAlto = false, Efficient = false, EfficientRange = 800 },
-	Kill = { Enabled = false, Targets = {}, Exclude = {}, Attacks = { Attack1 = true }, StickDist = 12, SwitchTime = 8, Interval = 1.2, PosMode = "Enfrente" },
-	Respawn = { Auto = false, Island = "Tokyo" },
-	Vote = { AutoAll = false, AutoYes = true, AutoFriends = false, Solo = {}, Exclude = {} },
-	BossFarm = { Enabled = false, Dodge = true, Attacks = { Attack1 = true }, AutoRespawn = true, StickDist = 12 },
-	QuestFarm = { Enabled = false, AutoSelect = true, DegradeStuck = true },
-	FarmKaijus = { Enabled = false, Target = "", ProgressLabel = nil, ReqLabel = nil, StatusLabel = nil },
-}
-
 -- ================= STATE =================
+-- Must be defined BEFORE L() so that L() can access State.Lang
 local State = {
 	FOVCircle = nil,
 	ESPObjects = {},       -- [enemyModel] = { Billboard, NameLabel, HealthLabel, DistanceLabel, Highlight, Humanoid, HRP, Conn }
@@ -619,6 +595,31 @@ local State = {
 -- UI slider references (set during UI creation, used in ResetMovementState)
 local MoveSprintSlider = nil
 local MoveWalkSlider = nil
+
+local function L(key)
+	local lang = State.Lang or "en"
+	local loc = Locales[lang] or Locales.en
+	return loc[key] or Locales.en[key] or key
+end
+
+print("[Kaiju Hub] PealLib loaded, creating UI...")
+
+-- ================= CONFIG =================
+local Config = {
+	Aim = { ShowFOV = false, FOV = 120, FOVColor = Color3.fromRGB(125, 85, 255), TargetPart = "HumanoidRootPart" },
+	ESP = { Enabled = false, ShowName = true, ShowHealth = true, ShowDistance = true, ShowChams = true, TeamCheck = true, MaxDistance = 5000, TextSize = 14, ChamsFillTransparency = 0.5, ChamsOutlineTransparency = 0 },
+	Movement = { Enabled = false, SprintSpeedPercent = 0, WalkSpeedPercent = 0 },
+	SilentAim = { Enabled = false, TargetPart = "HumanoidRootPart", Range = 1500,
+		OnlyWhileAttacking = true },
+	Farm = { Builds = false, Players = false, BuildRange = 1500, Wallcheck = true,
+		AutoFarm = false, SkyAlt = 70, BeamAlto = false, Efficient = false, EfficientRange = 800 },
+	Kill = { Enabled = false, Targets = {}, Exclude = {}, Attacks = { Attack1 = true }, StickDist = 12, SwitchTime = 8, Interval = 1.2, PosMode = "Enfrente" },
+	Respawn = { Auto = false, Island = "Tokyo" },
+	Vote = { AutoAll = false, AutoYes = true, AutoFriends = false, Solo = {}, Exclude = {} },
+	BossFarm = { Enabled = false, Dodge = true, Attacks = { Attack1 = true }, AutoRespawn = true, StickDist = 12 },
+	QuestFarm = { Enabled = false, AutoSelect = true, DegradeStuck = true },
+	FarmKaijus = { Enabled = false, Target = "", ProgressLabel = nil, ReqLabel = nil, StatusLabel = nil },
+}
 
 -- ================= SAFE HELPERS =================
 local function GetLiveFolder()
