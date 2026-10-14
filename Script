@@ -2096,123 +2096,99 @@ end
 -- y pulsa el botón Spawn por ti. Sin teleports chapuza.
 local SPAWN_INDEX = { Tokyo = 1, ["Isla de Mara"] = 2, Antarctica = 3, Desert = 4, ["Skull Island"] = 5 }
 
+-- Find the Play button (spawn confirm) in Menu.Menu.ButtonList.Play
 local function FindSpawnButton()
 	local pg = LocalPlayer:FindFirstChild("PlayerGui")
 	local menu = pg and pg:FindFirstChild("Menu")
 	if not menu then return nil end
+	local buttonList = menu:FindFirstChild("Menu")
+	local playBtn = buttonList and buttonList:FindFirstChild("ButtonList") and buttonList.ButtonList:FindFirstChild("Play")
+	if playBtn then return playBtn end
+	-- Fallback: search for Play or Spawn button
 	for _, d in ipairs(menu:GetDescendants()) do
-		if (d:IsA("TextButton") or d:IsA("ImageButton")) and d.Name == "Spawn" then
-			return d
+		if d:IsA("TextButton") or d:IsA("ImageButton") then
+			if d.Name == "Play" or d.Name == "Spawn" then return d end
 		end
 	end
 	return nil
 end
 
--- Pone la isla (y tu kaiju actual) en la selección del menú
-local function SetSpawnSelection(islandIdx, kaijuName)
-	if typeof(getconnections) ~= "function" or typeof(debug.getupvalues) ~= "function" then
-		Notify("SetSpawnSelection: getconnections/debug.getupvalues not available", 3)
-		return false
-	end
-	
-	-- First, ensure Menu is open
+-- Find the kaiju selection button in Menu.Kaiju.Container.[kaijuName].Button
+local function FindKaijuButton(kaijuName)
 	local pg = LocalPlayer:FindFirstChild("PlayerGui")
 	local menu = pg and pg:FindFirstChild("Menu")
-	if not menu or not menu.Enabled then
-		Notify("SetSpawnSelection: Menu not open, trying to open...", 3)
-		-- Try to open menu via keybind (usually M or comma)
-		pcall(function()
-			game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.M, false, game)
-			task.wait(0.1)
-			game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.M, false, game)
-		end)
-		task.wait(0.5)
-		pg = LocalPlayer:FindFirstChild("PlayerGui")
-		menu = pg and pg:FindFirstChild("Menu")
-		if not menu or not menu.Enabled then
-			Notify("SetSpawnSelection: Could not open Menu", 3)
-			return false
-		end
-	end
-	Notify("SetSpawnSelection: Menu is open", 2)
-	
-	local b = FindSpawnButton()
-	if not b then
-		Notify("SetSpawnSelection: Spawn button not found in Menu", 3)
-		return false
-	end
-	Notify("SetSpawnSelection: Found spawn button, setting IslandIndex=" .. tostring(islandIdx) .. " Kaiju=" .. tostring(kaijuName), 2)
-	
-	if typeof(getconnections) ~= "function" or typeof(debug.getupvalues) ~= "function" then
-		Notify("SetSpawnSelection: getconnections/debug.getupvalues not available", 3)
-		return false
-	end
-	
-	local done = false
+	if not menu then return nil end
+	local kaijuSection = menu:FindFirstChild("Kaiju")
+	local container = kaijuSection and kaijuSection:FindFirstChild("Container")
+	if not container then return nil end
+	local kaijuFrame = container:FindFirstChild(kaijuName)
+	if not kaijuFrame then return nil end
+	return kaijuFrame:FindFirstChild("Button")
+end
+
+-- Click a button by firing its MouseButton1Click connections
+local function FireButtonClick(btn)
+	if not btn then return false end
+	if typeof(getconnections) ~= "function" then return false end
+	local clicked = false
 	pcall(function()
-		for _, conn in ipairs(getconnections(b.MouseButton1Click)) do
+		for _, conn in ipairs(getconnections(btn.MouseButton1Click)) do
 			local f = conn.Function
-			if type(f) == "function" then
-				Notify("SetSpawnSelection: Checking upvalues for spawn function...", 2)
-				for i, up in ipairs(debug.getupvalues(f)) do
-					if type(up) == "table" then
-						-- Debug: print all keys in this upvalue
-						local keys = {}
-						for k, v in pairs(up) do table.insert(keys, k .. "=" .. tostring(v)) end
-						Notify("SetSpawnSelection: Upvalue[" .. i .. "] keys: " .. table.concat(keys, ", "), 2)
-						if rawget(up, "IslandIndex") ~= nil and islandIdx then
-							up.IslandIndex = islandIdx
-							done = true
-							Notify("SetSpawnSelection: Set IslandIndex to " .. islandIdx, 2)
-						end
-						if kaijuName then
-							for altName in pairs({SelectedKaiju=1, SelectedCharacter=1, Character=1, Kaiju=1, KaijuName=1, Unit=1}) do
-								if rawget(up, altName) ~= nil then
-									up[altName] = kaijuName
-									Notify("SetSpawnSelection: Set " .. altName .. " to " .. kaijuName, 2)
-								end
-							end
-						end
-					end
-				end
+			if type(f) == "function" and pcall(f) then
+				clicked = true
 			end
 		end
 	end)
-	return done
+	return clicked
+end
+
+-- Try to find SpawnRemote for direct spawning
+local function GetSpawnRemote()
+	if State.SpawnRemote and State.SpawnRemote.Parent then return State.SpawnRemote end
+	pcall(function()
+		local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+		State.SpawnRemote = remotes and remotes:FindFirstChild("SpawnRemote")
+	end)
+	return State.SpawnRemote
+end
+
+-- Select kaiju in the menu by clicking its Button, then optionally spawn
+local function SetSpawnSelection(islandIdx, kaijuName)
+	if not kaijuName or kaijuName == "" then
+		Notify("SetSpawnSelection: No kaiju name provided", 3)
+		return false
+	end
+
+	-- Step 1: Click the kaiju button to select it (REAL mechanism!)
+	local kaijuBtn = FindKaijuButton(kaijuName)
+	if not kaijuBtn then
+		Notify("SetSpawnSelection: Kaiju button not found for '" .. kaijuName .. "'", 3)
+		return false
+	end
+	local clicked = FireButtonClick(kaijuBtn)
+	if clicked then
+		Notify("SetSpawnSelection: Clicked kaiju button for " .. kaijuName, 2)
+	else
+		Notify("SetSpawnSelection: Failed to click kaiju button for " .. kaijuName, 3)
+		return false
+	end
+	return true
 end
 
 local function PressSpawn()
-	if typeof(getconnections) ~= "function" then
-		Notify("PressSpawn: getconnections not available", 3)
+	local playBtn = FindSpawnButton()
+	if not playBtn then
+		Notify("PressSpawn: Play button not found", 3)
 		return false
 	end
-	
-	-- Ensure Menu is open
-	local pg = LocalPlayer:FindFirstChild("PlayerGui")
-	local menu = pg and pg:FindFirstChild("Menu")
-	if not menu or not menu.Enabled then
-		Notify("PressSpawn: Menu not open", 3)
+	local clicked = FireButtonClick(playBtn)
+	if clicked then
+		Notify("PressSpawn: Clicked Play button", 2)
+		return true
+	else
+		Notify("PressSpawn: Failed to click Play button", 3)
 		return false
 	end
-	
-	local b = FindSpawnButton()
-	if not b then
-		Notify("PressSpawn: Spawn button not found", 3)
-		return false
-	end
-	
-	local pressed = false
-	pcall(function()
-		for _, conn in ipairs(getconnections(b.MouseButton1Click)) do
-			local f = conn.Function
-			if type(f) == "function" and pcall(f) then
-				pressed = true
-				Notify("PressSpawn: Fired spawn connection", 2)
-				break
-			end
-		end
-	end)
-	return pressed
 end
 
 local function MyKaijuName()
@@ -3251,24 +3227,6 @@ SpawnGroup:AddButton({ Text = L("Lbl_Suicide"), Func = function()
 		if cr then cr:FireServer("Death") end
 	end)
 	Notify(L("Msg_SuicideSent"), 3)
-end })
--- Test Spawn Selection button
-SpawnGroup:AddButton({ Text = "Test Spawn Selection (Final Wars)", Func = function()
-	local idx = SPAWN_INDEX[Config.Respawn.Island] or 1
-	Notify("Testing spawn selection for Final Wars Godzilla...", 3)
-	if SetSpawnSelection(idx, "Final Wars Godzilla") then
-		Notify("SetSpawnSelection returned true", 3)
-	else
-		Notify("SetSpawnSelection returned false", 3)
-	end
-end })
-SpawnGroup:AddButton({ Text = "Test Press Spawn", Func = function()
-	Notify("Testing PressSpawn...", 3)
-	if PressSpawn() then
-		Notify("PressSpawn returned true", 3)
-	else
-		Notify("PressSpawn returned false", 3)
-	end
 end })
 SpawnGroup:AddLabel(L("Lbl_RespawnNote"), true)
 
