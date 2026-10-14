@@ -902,7 +902,25 @@ local function SelectBestQuest()
 		PlayTime = 4,
 	}
 	
+	-- Check if enemies available for Kill quests
+	local enemiesAvailable = #GetEnemyKaijus() > 0
+	
 	table.sort(available, function(a, b)
+		-- Skip degraded quest
+		if State.SkippedQuestId and a.Quest.Id == State.SkippedQuestId and a.Type == State.SkippedQuestType then
+			return false
+		end
+		if State.SkippedQuestId and b.Quest.Id == State.SkippedQuestId and b.Type == State.SkippedQuestType then
+			return true
+		end
+		-- Skip Kill quests if no enemies (unless ReadyToClaim)
+		if not enemiesAvailable and not a.ReadyToClaim and (a.Quest.Category == "Kill" or a.Quest.Category == "KillTarget" or a.Quest.Category == "KillAny") then
+			return false
+		end
+		if not enemiesAvailable and not b.ReadyToClaim and (b.Quest.Category == "Kill" or b.Quest.Category == "KillTarget" or b.Quest.Category == "KillAny") then
+			return true
+		end
+		
 		local pa = a.ReadyToClaim and 100 or (priority[a.Quest.Category] or 0)
 		local pb = b.ReadyToClaim and 100 or (priority[b.Quest.Category] or 0)
 		if pa ~= pb then return pa > pb end
@@ -911,6 +929,21 @@ local function SelectBestQuest()
 		local progB = b.Quest.Goal > 0 and (b.Quest.Progress / b.Quest.Goal) or 0
 		return progA > progB
 	end)
+	
+	-- Clear skipped quest if it's no longer in available list
+	if State.SkippedQuestId then
+		local found = false
+		for _, aq in pairs(available) do
+			if aq.Quest.Id == State.SkippedQuestId and aq.Type == State.SkippedQuestType then
+				found = true
+				break
+			end
+		end
+		if not found then
+			State.SkippedQuestId = nil
+			State.SkippedQuestType = nil
+		end
+	end
 	
 	return available[1]
 end
@@ -2660,10 +2693,17 @@ local function QuestFarmTick()
 			State.QuestLastProgress = prog
 			Notify("QuestFarm: Selected " .. best.Type .. " - " .. best.Quest.Info .. " [" .. best.Quest.Progress .. "/" .. best.Quest.Goal .. "] Cat: " .. tostring(best.Quest.Category), 3)
 			
-			-- If stuck for too long, try next quest (degrade)
+			-- If stuck for too long, try next quest (degrade = skip to next best)
 			if State.QuestStuckCount > 5 and Config.QuestFarm.DegradeStuck then
 				State.QuestStuckCount = 0
-				-- Could implement quest skip logic here
+				-- Actually skip this quest by selecting the next best one
+				local available = GetAvailableQuests()
+				if available then
+					-- Mark current as "skipped" by temporarily ignoring it
+					State.SkippedQuestId = best.Quest.Id
+					State.SkippedQuestType = best.Type
+					Notify("QuestFarm: Stuck - degrading to next quest", 3)
+				end
 			end
 		else
 			State.QuestCurrentId = nil
