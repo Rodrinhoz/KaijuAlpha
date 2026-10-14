@@ -2721,6 +2721,20 @@ local function QuestFarmTick()
 			end
 		end
 	end
+	
+	-- Debug: print current quest status every 30s
+	if State.QuestCurrentId and (now - (State.QuestDebugTime or 0)) > 30 then
+		State.QuestDebugTime = now
+		local available = GetAvailableQuests()
+		if available then
+			for _, aq in pairs(available) do
+				if aq.Quest.Id == State.QuestCurrentId then
+					print("[QuestFarm] " .. aq.Type .. ": " .. aq.Quest.Info .. " " .. aq.Quest.Progress .. "/" .. aq.Quest.Goal .. " (" .. aq.Quest.Category .. ")")
+					break
+				end
+			end
+		end
+	end
 end
 
 -- ================= FARM KAIJU TICK =================
@@ -3266,10 +3280,23 @@ MyKaijusGroup:AddButton({ Text = "Reset and Respawn", Func = function()
 		local cr = remotes and remotes:FindFirstChild("CombatRemote")
 		if cr then cr:FireServer("Death") end
 	end)
-	-- Wait for death then spawn with selected kaiju (original approach with delay)
+	-- Wait for death then spawn with selected kaiju
 	task.delay(1.5, function()
 		local idx = SPAWN_INDEX[Config.Respawn.Island] or 1
-		if SetSpawnSelection(idx, kaijuName) and PressSpawn() then
+		-- Try SetSpawnSelection first (uses UI upvalues)
+		local success = SetSpawnSelection(idx, kaijuName)
+		-- Fallback: try to set via remote if available
+		if not success then
+			pcall(function()
+				local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+				local sr = remotes and remotes:FindFirstChild("SpawnRemote")
+				if sr then
+					sr:FireServer("SetSelection", idx, kaijuName)
+					success = true
+				end
+			end)
+		end
+		if success and PressSpawn() then
 			Notify("Respawning as " .. kaijuName .. " on " .. Config.Respawn.Island, 3)
 		else
 			Notify("Spawn failed - press Spawn manually", 4)
