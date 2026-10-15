@@ -649,6 +649,12 @@ local function GetMyKaiju(useCache)
 	return nil
 end
 
+-- Forward declarations for functions defined later in the file
+-- (Lua local functions must be declared before use to avoid capturing globals)
+local UnweldBoss
+local ReleaseSkyPlatform
+local DestroySkyPlatform
+
 local function InvalidateKaijuCache()
 	State.MyKaijuCache = nil
 	-- NOTA: no tocamos MoveBase aquí. Invalidar la base con cualquier
@@ -662,7 +668,7 @@ local function OnMyKaijuChanged()
 		pcall(State.MoveKaiju.SetAttribute, State.MoveKaiju, "SpeedMulti", State.MoveBase)
 	end
 	-- Cleanup boss weld (B14)
-	UnweldBoss()
+	if UnweldBoss then pcall(UnweldBoss) end
 	-- Cleanup BeamAlto state on death (B7)
 	State.BeamAltoReturn = nil
 	State.BeamAltoMode = nil
@@ -674,7 +680,7 @@ local function OnMyKaijuChanged()
 	State.BeamAltoStartAt = 0
 	State.LastAltoPin = 0
 	-- Cleanup AutoFarm platform on death (B3)
-	ReleaseSkyPlatform()
+	if ReleaseSkyPlatform then pcall(ReleaseSkyPlatform) end
 	State.MyKaijuCache = nil
 	State.MoveBase = nil
 	State.MoveLastApplied = nil
@@ -1624,19 +1630,20 @@ end
 -- Sin plataforma caes por gravedad y parece que "no sube". Con plataforma
 -- el juego te sostiene solo (física normal) y no hay que re-pinnear.
 -- Refcount system (B6): multiple features can share the platform
-local function AcquireSkyPlatform(skyTop)
+-- (assignments, not local declarations - forward declared above)
+AcquireSkyPlatform = function(skyTop)
 	State.SkyPlatformUsers = (State.SkyPlatformUsers or 0) + 1
 	return EnsureSkyPlatform(skyTop)
 end
 
-local function ReleaseSkyPlatform()
+ReleaseSkyPlatform = function()
 	State.SkyPlatformUsers = math.max(0, (State.SkyPlatformUsers or 0) - 1)
 	if State.SkyPlatformUsers == 0 then
 		DestroySkyPlatform()
 	end
 end
 
-local function EnsureSkyPlatform(skyTop)
+EnsureSkyPlatform = function(skyTop)
 	local p = State.SkyPlatform
 	if p and p.Parent then
 		if (p.Position - (skyTop - Vector3.new(0, 1, 0))).Magnitude > 40 then
@@ -1663,7 +1670,7 @@ local function EnsureSkyPlatform(skyTop)
 	return State.SkyPlatform
 end
 
-local function DestroySkyPlatform()
+DestroySkyPlatform = function()
 	if (State.SkyPlatformUsers or 0) > 0 then return end -- Don't destroy if still in use (B6)
 	pcall(function() if State.SkyPlatform then State.SkyPlatform:Destroy() end end)
 	State.SkyPlatform = nil
@@ -2620,7 +2627,7 @@ end
 -- Pegado con WeldConstraint (no existe en la lista negra del Anti):
 -- te sueldas detrás del jefe y la física te lleva con él, suave,
 -- sin teleports a cada rato. Al girar él, sigues detrás.
-local function UnweldBoss()
+UnweldBoss = function()
 	pcall(function()
 		if State.BossWeld then State.BossWeld:Destroy() end
 	end)
