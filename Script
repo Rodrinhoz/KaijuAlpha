@@ -583,6 +583,7 @@ local State = {
 	QuestSwitchTargetKaiju = nil,
 	QuestSwitchingForFarm = false,
 	QuestSwitchAttempted = false,
+	QuestBuildingFarm = false,
 	-- FarmKaijus
 	FarmKaijuTarget = nil,
 	FarmKaijuStage = 0, -- 0=idle, 1=checking reqs, 2=progressing req, 3=buying
@@ -1677,7 +1678,7 @@ DestroySkyPlatform = function()
 end
 
 local function AutoFarmTick()
-	if not Config.Farm.AutoFarm or State.Unloaded then return end
+	if not (Config.Farm.AutoFarm or State.QuestBuildingFarm) or State.Unloaded then return end
 	local now = os.clock()
 	if (now - (State.LastAutoTick or 0)) < 0.5 then return end
 	State.LastAutoTick = now
@@ -2460,7 +2461,7 @@ local function SyncExcludeDrop()
 	local drop = State.VoteExcludeDrop
 	if not drop then return end
 	local names = AllPlayerNames()
-	pcall(function() drop:Refresh(names) end)
+	pcall(function() drop:SetValues(names) end)
 	pcall(function()
 		local map = {}
 		for name in pairs(Config.Vote.Exclude) do map[name] = true end
@@ -2903,12 +2904,14 @@ local function QuestFarmTick()
 					State.SkippedQuestId = best.Quest.Id
 					State.SkippedQuestType = best.Type
 					State.QuestSwitchAttempted = false -- Reset for next quest
+					State.QuestBuildingFarm = false -- Reset building farm flag for next quest
 					Notify("QuestFarm: Stuck - degrading to next quest", 3)
 				end
 			end
 		else
 			State.QuestCurrentId = nil
 			State.QuestCurrentType = nil
+			State.QuestBuildingFarm = false -- No quest, stop building farm
 			Notify("QuestFarm: No quests available", 3)
 		end
 	end
@@ -2999,27 +3002,20 @@ local function QuestFarmTick()
 					local isBeamQuest = string.find(category, "Beam") ~= nil
 					local mode = isBeamQuest and "Beam" or "Normal"
 					Config.Farm.BuildingFarmMode = mode
+					Config.Farm.Players = false
+					State.LastFarmRefresh = 0
 					
-					if not Config.Farm.Builds then
-						Config.Farm.Builds = true
-						State.LastFarmRefresh = 0
-						Notify("QuestFarm: Enabled " .. mode .. " Buildings for quest", 3)
-					end
-					-- Enable AutoFarm for platform + beam firing (Beam) or TP inside + attacks (Normal)
-					if not Config.Farm.AutoFarm then
-						Config.Farm.AutoFarm = true
+					-- Use our OWN flag, NOT Config.Farm.AutoFarm (that's the user's toggle)
+					if not State.QuestBuildingFarm then
+						State.QuestBuildingFarm = true
 						if mode == "Beam" then
 							InstallSilentHooks()
 							local cd, cost, skill = BeamCostCD()
-							Notify(string.format("AutoFarm[Beam] ON for buildings (platform in Tokyo lake + %s: %ds CD, %d energy)", skill, math.floor(cd), math.floor(cost)), 3)
+							Notify(string.format("QuestFarm: %s buildings ON (platform in Tokyo lake + %s: %ds CD, %d energy)", mode, skill, math.floor(cd), math.floor(cost)), 3)
 						else
-							Notify("AutoFarm[Normal] ON for buildings (TP inside + spam attacks)", 3)
+							Notify("QuestFarm: " .. mode .. " buildings ON (TP inside + spam attacks)", 3)
 						end
 					end
-					-- Ensure we're targeting buildings
-					Config.Farm.Players = false
-					State.LastFarmRefresh = 0
-					Notify("QuestFarm: Building farm mode = " .. mode, 3)
 				elseif category == "BossKill" or category == "BossDamage" or category == "Boss" then
 					-- Go to boss and attack
 					Config.BossFarm.Enabled = true
@@ -3171,6 +3167,7 @@ local function Cleanup()
 	pcall(StopBossFarm)
 	-- Force destroy platform on unload (bypass refcount)
 	State.SkyPlatformUsers = 0
+	State.QuestBuildingFarm = false
 	pcall(DestroySkyPlatform)
 	for _, conn in ipairs(State.Connections) do
 		pcall(function() conn:Disconnect() end)
@@ -3410,6 +3407,8 @@ BeamFarmGroup:AddToggle("AutoFarm", { Text = L("Lbl_AutoFarm"), Default = false,
 		Notify(string.format(L("Msg_AutoFarmOn"), skill, math.floor(cd), math.floor(cost)), 4)
 	else
 		ReleaseSkyPlatform()
+		-- User explicitly disabled AutoFarm: also stop QuestFarm's building farm
+		State.QuestBuildingFarm = false
 		-- Restore position after farm disabled (B4)
 		task.delay(0.5, function()
 			if State.PreFarmPos and not State.Unloaded then
@@ -3519,8 +3518,8 @@ KillGroup:AddSlider("KillSwitch", { Text = L("Lbl_KillSwitch"), Default = 8, Min
 KillGroup:AddSlider("KillInterval", { Text = L("Lbl_KillInterval"), Default = 1.2, Min = 0.5, Max = 3, Rounding = 2, Callback = function(v) Config.Kill.Interval = v end })
 KillGroup:AddButton({ Text = L("Lbl_KillRefresh"), Func = function()
 	local names = AllPlayerNames()
-	pcall(function() KillTargetsDrop:Refresh(names) end)
-	pcall(function() KillExcludeDrop:Refresh(names) end)
+	pcall(function() KillTargetsDrop:SetValues(names) end)
+	pcall(function() KillExcludeDrop:SetValues(names) end)
 	Notify(string.format(L("Msg_KillRefresh"), #names), 3)
 end })
 
@@ -3530,6 +3529,11 @@ local MiscTab = Window:AddTab("Misc")
 -- My Kaijus (left) - Kaiju Inventory System
 local MyKaijusGroup = MiscTab:AddLeftGroupbox("My Kaijus")
 
+-- Kaiju selector for actions - created FIRST so RefreshMyKaijus can reference it
+local MyKaijuSelectDrop = MyKaijusGroup:AddDropdown("MyKaijuSelect", { Text = "Select Kaiju", Values = { "Loading..." }, Default = 1, Callback = function(v)
+	State.SelectedMyKaiju = v
+end })
+
 -- Refresh function
 local function RefreshMyKaijus()
 	State.MyKaijuList = GetOwnedKaijus()
@@ -3537,10 +3541,13 @@ local function RefreshMyKaijus()
 	for name, _ in pairs(State.MyKaijuList) do table.insert(ownedNames, name) end
 	if #ownedNames == 0 then table.insert(ownedNames, "None") end
 	table.sort(ownedNames)
-	pcall(function() MyKaijuSelectDrop:Refresh(ownedNames) end)
-	-- Keep current selection if still valid
-	if State.SelectedMyKaiju and not State.MyKaijuList[State.SelectedMyKaiju] then
+	-- PealLib: SetValues updates the list, SetValue updates the displayed text
+	pcall(function() MyKaijuSelectDrop:SetValues(ownedNames) end)
+	if State.SelectedMyKaiju and State.MyKaijuList[State.SelectedMyKaiju] then
+		pcall(function() MyKaijuSelectDrop:SetValue(State.SelectedMyKaiju) end)
+	else
 		State.SelectedMyKaiju = ownedNames[1]
+		pcall(function() MyKaijuSelectDrop:SetValue(ownedNames[1]) end)
 	end
 	local currency = GetCurrency()
 	local msg = "Cells: " .. math.floor(currency.Cells) .. " | Gems: " .. math.floor(currency.Gems) .. "\n"
@@ -3550,16 +3557,22 @@ local function RefreshMyKaijus()
 		msg = msg .. name .. " Lv." .. data.Level .. " (" .. data.Kills .. " kills)" .. (data.Favourite and " ⭐" or "") .. "\n"
 	end
 	msg = "Owned Kaijus: " .. count .. "\n" .. msg
+	-- PealLib: SetValues updates the list, SetValue updates the displayed text
+	pcall(function() MyKaijuSelectDrop:SetValues(ownedNames) end)
+	if State.SelectedMyKaiju and State.MyKaijuList[State.SelectedMyKaiju] then
+		pcall(function() MyKaijuSelectDrop:SetValue(State.SelectedMyKaiju) end)
+	else
+		State.SelectedMyKaiju = ownedNames[1]
+		pcall(function() MyKaijuSelectDrop:SetValue(ownedNames[1]) end)
+	end
 	Notify(msg, 5)
 	print(msg)
 end
 
 MyKaijusGroup:AddButton({ Text = "Refresh Inventory", Func = RefreshMyKaijus })
 
--- Kaiju selector for actions - starts with placeholder, populated after init
-local MyKaijuSelectDrop = MyKaijusGroup:AddDropdown("MyKaijuSelect", { Text = "Select Kaiju", Values = { "Loading..." }, Default = 1, Callback = function(v)
-	State.SelectedMyKaiju = v
-end })
+-- Populate dropdown now (data is ready by this point in init)
+RefreshMyKaijus()
 
 MyKaijusGroup:AddButton({ Text = "Reset and Respawn", Func = function()
 	local kaijuName = State.SelectedMyKaiju
@@ -3628,8 +3641,8 @@ VoteGroup:AddToggle("VoteAutoFriends", { Text = L("Lbl_VoteAutoFriends"), Defaul
 end })
 VoteGroup:AddButton({ Text = L("Lbl_VoteRefresh"), Func = function()
 	local names = AllPlayerNames()
-	pcall(function() VoteFocusDrop:Refresh(names) end)
-	pcall(function() VoteExcludeDrop:Refresh(names) end)
+	pcall(function() VoteFocusDrop:SetValues(names) end)
+	pcall(function() VoteExcludeDrop:SetValues(names) end)
 	Notify(string.format(L("Msg_VoteRefresh"), #names), 3)
 end })
 VoteGroup:AddLabel(L("Lbl_VoteNote"), true)
@@ -3753,13 +3766,6 @@ if initialKaiju then
 	State.MoveBase = GetSpeedMulti(initialKaiju) or 1
 	State.InitialMoveBase = State.MoveBase
 end
-
--- Populate My Kaijus dropdown after init
-task.delay(2, function()
-	if not State.Unloaded then
-		RefreshMyKaijus()
-	end
-end)
 
 Notify("Kaiju Hub v1.0.18 cargado (PealLib)", 5)
 print("[Kaiju Hub] v1.0.18 listo")
